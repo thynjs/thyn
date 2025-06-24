@@ -101,51 +101,72 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
       if (!subs) map.set(value, subs = new Set());
       subs.add(currentEffect);
       currentEffect.deps.add(subs);
-      currentEffect.teardown ??= [];
-      currentEffect.teardown.push(() => {
-        if (!subs.size) {
+
+
+      const teardownFn = () => {
+        subs.delete(currentEffect);
+        if (subs.size === 0) {
           map.delete(value);
         }
-      });
+      };
+
+      if (currentEffect.td) {
+        currentEffect.td.push(teardownFn);
+      } else {
+        currentEffect.td = [teardownFn];
+      }
     }
     return current === value;
   };
 }
 
-export function $effect(fn) {
-  let ran = false;
-  const runEffect = () => {
-    if (ran) cleanup(effectFn);
-    else ran = true;
-    const prev = currentEffect;
-    currentEffect = effectFn;
-    const td = fn();
-    if (td) {
-      effectFn.teardown ??= [];
-      effectFn.teardown.push(td);
+function runEffect(effectFn) {
+  if (effectFn.ran) {
+    cleanup(effectFn);
+  } else {
+    effectFn.ran = true;
+  }
+  const prev = currentEffect;
+  currentEffect = effectFn;
+  const td = effectFn.run();
+  if (td) {
+    if (effectFn.td) {
+      effectFn.td.push(td);
+    } else {
+      effectFn.td = [td];
     }
-    currentEffect = prev;
-  };
-  const effectFn: {
-    teardown?: (() => void)[];
-    run: () => void;
-    deps: Set<any>;
-  } = {
-    run: runEffect,
+  }
+  currentEffect = prev;
+}
+
+export function $effect(fn) {
+  const effectFn = {
+    ran: false,
+    run: fn,
     deps: new Set(),
+    td: null,
   };
-  runEffect();
+  runEffect(effectFn);
   currentEffects?.push(effectFn);
   return effectFn;
 }
 
 export function cleanup(effectFn) {
-  for (const subs of effectFn.deps) {
-    subs.delete(effectFn);
+  const { deps, td } = effectFn;
+
+  if (deps.size) {
+    for (const subs of deps) {
+      subs.delete(effectFn);
+    }
+    deps.clear();
   }
-  effectFn.deps.clear();
-  if (effectFn.teardown) {
-    for (const f of effectFn.teardown) f();
+
+  if (td) {
+    const len = td.length;
+    for (let i = 0; i < len; i++) {
+      td[i]();
+    }
+    effectFn.td = null;
   }
 }
 
