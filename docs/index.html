@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Thyn</title>
+  <title>thyn</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
   <style>
 	html, body {
 		height: 100%;
@@ -17,18 +18,61 @@
         -moz-osx-font-smoothing: grayscale;
 	}
 
+	* {
+		box-sizing: border-box;
+		font-weight: 200;
+	}
+
 	div {
 		position: absolute;
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
 	}
+
+	h1 {
+		font-size: 48px;
+		letter-spacing: 2px;
+	}
+
+	pre {
+		width: 100%;
+		max-width: calc(100vw - 20px);
+		font-size: 14px !important;
+		margin: 0 !important;
+		padding: 10px 20px !important;
+		border-radius: 10px;
+		margin-bottom: 20px !important;
+	}
+
+	a {
+		color: #fff;
+	}
   </style>
 </head>
 <body>
 <div>
-	<h1>Thyn</h1>
-	<p>Coming soon...</p>
+	<h1>thyn</h1>
+	<pre><code class="language-html"></code></pre>
+	<a href="https://github.com/thynjs/thyn">source</a>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script>
+const code = document.querySelector("code");
+code.textContent = `<script>
+  const [count, setCount] = $state(0);
+<\/script>
+
+<button :onclick="() => setCount(c => c + 1)">
+  Count: {{ count() }}
+</button>
+
+<style>
+  button {
+    background: #333;
+  }
+</style>`;
+</script>
 </body>
 </html>
