@@ -198,7 +198,7 @@ function generateTextContentTemplate(text: string, parent: string, prevSibling?:
   };
 }
 
-const NAMESPACE = "__SPARKI__";
+const NAMESPACE = "__THYN__";
 const HOIST_PREFIX = `${NAMESPACE}HOIST__`;
 
 function cloneIfNeeded(code: string): string {

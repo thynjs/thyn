@@ -1,318 +1,318 @@
 {
-    "name": "Sparki",
-    "scopeName": "source.sparki",
-    "fileTypes": [
-        "sparki"
-    ],
-    "patterns": [
-        {
-            "include": "#sparki-script"
-        },
-        {
-            "include": "#sparki-style"
-        },
-        {
-            "include": "#sparki-template"
-        }
-    ],
-    "repository": {
-        "sparki-script": {
-            "begin": "(<)(script)\\b([^>]*)(>)",
-            "beginCaptures": {
-                "1": {
-                    "name": "punctuation.definition.tag.begin.html"
-                },
-                "2": {
-                    "name": "entity.name.tag.script.html"
-                },
-                "3": {
-                    "patterns": [
-                        {
-                            "include": "#script-lang-attr"
-                        },
-                        {
-                            "include": "#tag-generic-attribute"
-                        }
-                    ]
-                },
-                "4": {
-                    "name": "punctuation.definition.tag.end.html"
-                }
-            },
-            "end": "(</)(script)(>)",
-            "endCaptures": {
-                "1": {
-                    "name": "punctuation.definition.tag.begin.html"
-                },
-                "2": {
-                    "name": "entity.name.tag.script.html"
-                },
-                "3": {
-                    "name": "punctuation.definition.tag.end.html"
-                }
-            },
-            "contentName": "source.js",
-            "patterns": [
-                {
-                    "include": "#sparki-js-content"
-                }
-            ]
-        },
-        "script-lang-attr": {
-            "match": "\\b(lang)\\s*(=)\\s*([\"'])(ts|typescript|js|javascript)\\3",
-            "captures": {
-                "1": {
-                    "name": "entity.other.attribute-name.html"
-                },
-                "2": {
-                    "name": "punctuation.separator.key-value.html"
-                },
-                "3": {
-                    "name": "punctuation.definition.string.begin.html"
-                },
-                "4": {
-                    "name": "string.quoted.html"
-                }
-            }
-        },
-        "sparki-style": {
-            "begin": "(<)(style)\\b([^>]*)(>)",
-            "beginCaptures": {
-                "1": {
-                    "name": "punctuation.definition.tag.begin.html"
-                },
-                "2": {
-                    "name": "entity.name.tag.style.html"
-                },
-                "3": {
-                    "patterns": [
-                        {
-                            "include": "#tag-generic-attribute"
-                        }
-                    ]
-                },
-                "4": {
-                    "name": "punctuation.definition.tag.end.html"
-                }
-            },
-            "end": "(</)(style)(>)",
-            "endCaptures": {
-                "1": {
-                    "name": "punctuation.definition.tag.begin.html"
-                },
-                "2": {
-                    "name": "entity.name.tag.style.html"
-                },
-                "3": {
-                    "name": "punctuation.definition.tag.end.html"
-                }
-            },
-            "contentName": "source.css",
-            "patterns": [
-                {
-                    "include": "source.css"
-                }
-            ]
-        },
-        "sparki-template": {
-            "patterns": [
-                {
-                    "include": "#sparki-style"
-                },
-                {
-                    "include": "#sparki-interpolation"
-                },
-                {
-                    "include": "#sparki-directives"
-                },
-                {
-                    "match": "(</)([a-zA-Z][a-z0-9-]*)(>)",
-                    "captures": {
-                        "1": {
-                            "name": "punctuation.definition.tag.begin.html"
-                        },
-                        "2": {
-                            "name": "entity.name.tag.html"
-                        },
-                        "3": {
-                            "name": "punctuation.definition.tag.end.html"
-                        }
-                    },
-                    "name": "meta.tag.html"
-                },
-                {
-                    "begin": "(<)([a-zA-Z][a-z0-9-]*)",
-                    "beginCaptures": {
-                        "1": {
-                            "name": "punctuation.definition.tag.begin.html"
-                        },
-                        "2": {
-                            "name": "entity.name.tag.html"
-                        }
-                    },
-                    "end": "(/>)|((</)(\\2)(>))",
-                    "endCaptures": {
-                        "1": {
-                            "name": "punctuation.definition.tag.end.html"
-                        },
-                        "3": {
-                            "name": "punctuation.definition.tag.begin.html"
-                        },
-                        "4": {
-                            "name": "entity.name.tag.html"
-                        },
-                        "5": {
-                            "name": "punctuation.definition.tag.end.html"
-                        }
-                    },
-                    "name": "meta.tag.html",
-                    "patterns": [
-                        {
-                            "begin": "(>)",
-                            "beginCaptures": {
-                                "1": {
-                                    "name": "punctuation.definition.tag.end.html"
-                                }
-                            },
-                            "end": "(?=</\\2>)",
-                            "patterns": [
-                                {
-                                    "include": "#sparki-template"
-                                }
-                            ]
-                        },
-                        {
-                            "include": "#sparki-directives"
-                        },
-                        {
-                            "include": "#tag-generic-attribute"
-                        }
-                    ]
-                }
-            ]
-        },
-        "sparki-interpolation": {
-            "begin": "\\{\\{",
-            "beginCaptures": {
-                "0": {
-                    "name": "punctuation.section.embedded.begin.sparki"
-                }
-            },
-            "end": "\\}\\}",
-            "endCaptures": {
-                "0": {
-                    "name": "punctuation.section.embedded.end.sparki"
-                }
-            },
-            "name": "meta.interpolation.sparki",
-            "contentName": "source.js",
-            "patterns": [
-                {
-                    "include": "source.js"
-                }
-            ]
-        },
-        "sparki-directives": {
-            "patterns": [
-                {
-                    "match": "\\b:(on\\w*|if|each|key|class|style|[a-zA-Z][\\w-]*)(?:\\.[a-zA-Z][\\w-]*)*\\b",
-                    "name": "entity.other.attribute-name.sparki-directive"
-                },
-                {
-                    "begin": "(:on\\w*(?:\\.[a-zA-Z][\\w-]*)*)\\s*(=)\\s*([\"'])",
-                    "beginCaptures": {
-                        "1": {
-                            "name": "entity.other.attribute-name.sparki-directive"
-                        },
-                        "2": {
-                            "name": "punctuation.separator.key-value.html"
-                        },
-                        "3": {
-                            "name": "punctuation.definition.string.begin.html"
-                        }
-                    },
-                    "end": "\\3",
-                    "endCaptures": {
-                        "0": {
-                            "name": "punctuation.definition.string.end.html"
-                        }
-                    },
-                    "name": "meta.attribute-value.sparki-event",
-                    "contentName": "source.js",
-                    "patterns": [
-                        {
-                            "include": "source.js"
-                        }
-                    ]
-                },
-                {
-                    "begin": "(:[a-zA-Z][\\w-]*)\\s*(=)\\s*([\"'])",
-                    "beginCaptures": {
-                        "1": {
-                            "name": "entity.other.attribute-name.sparki-directive"
-                        },
-                        "2": {
-                            "name": "punctuation.separator.key-value.html"
-                        },
-                        "3": {
-                            "name": "punctuation.definition.string.begin.html"
-                        }
-                    },
-                    "end": "\\3",
-                    "endCaptures": {
-                        "0": {
-                            "name": "punctuation.definition.string.end.html"
-                        }
-                    },
-                    "name": "meta.attribute-value.sparki-binding",
-                    "contentName": "source.js",
-                    "patterns": [
-                        {
-                            "include": "source.js"
-                        }
-                    ]
-                }
-            ]
-        },
-        "sparki-js-content": {
-            "patterns": [
-                {
-                    "match": "\\$(?:state|effect|computed)\\b",
-                    "name": "support.function.sparki-reactive"
-                },
-                {
-                    "include": "source.js"
-                }
-            ]
-        },
-        "tag-generic-attribute": {
-            "patterns": [
-                {
-                    "begin": "\\b([a-zA-Z][a-zA-Z0-9\\-]*)\\s*(=)\\s*([\"'])",
-                    "beginCaptures": {
-                        "1": {
-                            "name": "entity.other.attribute-name.html"
-                        },
-                        "2": {
-                            "name": "punctuation.separator.key-value.html"
-                        },
-                        "3": {
-                            "name": "punctuation.definition.string.begin.html"
-                        }
-                    },
-                    "end": "\\3",
-                    "endCaptures": {
-                        "0": {
-                            "name": "punctuation.definition.string.end.html"
-                        }
-                    },
-                    "name": "string.quoted.html"
-                },
-                {
-                    "match": "\\b([a-zA-Z][a-zA-Z0-9\\-]*)\\b",
-                    "name": "entity.other.attribute-name.html"
-                }
-            ]
-        }
+  "name": "Thyn",
+  "scopeName": "source.thyn",
+  "fileTypes": [
+    "thyn"
+  ],
+  "patterns": [
+    {
+      "include": "#thyn-script"
+    },
+    {
+      "include": "#thyn-style"
+    },
+    {
+      "include": "#thyn-template"
     }
+  ],
+  "repository": {
+    "thyn-script": {
+      "begin": "(<)(script)\\b([^>]*)(>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.script.html"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#script-lang-attr"
+            },
+            {
+              "include": "#tag-generic-attribute"
+            }
+          ]
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "end": "(</)(script)(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.script.html"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "contentName": "source.js",
+      "patterns": [
+        {
+          "include": "#thyn-js-content"
+        }
+      ]
+    },
+    "script-lang-attr": {
+      "match": "\\b(lang)\\s*(=)\\s*([\"'])(ts|typescript|js|javascript)\\3",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute-name.html"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.html"
+        },
+        "3": {
+          "name": "punctuation.definition.string.begin.html"
+        },
+        "4": {
+          "name": "string.quoted.html"
+        }
+      }
+    },
+    "thyn-style": {
+      "begin": "(<)(style)\\b([^>]*)(>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.style.html"
+        },
+        "3": {
+          "patterns": [
+            {
+              "include": "#tag-generic-attribute"
+            }
+          ]
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "end": "(</)(style)(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.html"
+        },
+        "2": {
+          "name": "entity.name.tag.style.html"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.html"
+        }
+      },
+      "contentName": "source.css",
+      "patterns": [
+        {
+          "include": "source.css"
+        }
+      ]
+    },
+    "thyn-template": {
+      "patterns": [
+        {
+          "include": "#thyn-style"
+        },
+        {
+          "include": "#thyn-interpolation"
+        },
+        {
+          "include": "#thyn-directives"
+        },
+        {
+          "match": "(</)([a-zA-Z][a-z0-9-]*)(>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.html"
+            },
+            "2": {
+              "name": "entity.name.tag.html"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.html"
+            }
+          },
+          "name": "meta.tag.html"
+        },
+        {
+          "begin": "(<)([a-zA-Z][a-z0-9-]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.html"
+            },
+            "2": {
+              "name": "entity.name.tag.html"
+            }
+          },
+          "end": "(/>)|((</)(\\2)(>))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.html"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.begin.html"
+            },
+            "4": {
+              "name": "entity.name.tag.html"
+            },
+            "5": {
+              "name": "punctuation.definition.tag.end.html"
+            }
+          },
+          "name": "meta.tag.html",
+          "patterns": [
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.html"
+                }
+              },
+              "end": "(?=</\\2>)",
+              "patterns": [
+                {
+                  "include": "#thyn-template"
+                }
+              ]
+            },
+            {
+              "include": "#thyn-directives"
+            },
+            {
+              "include": "#tag-generic-attribute"
+            }
+          ]
+        }
+      ]
+    },
+    "thyn-interpolation": {
+      "begin": "\\{\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.begin.thyn"
+        }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.thyn"
+        }
+      },
+      "name": "meta.interpolation.thyn",
+      "contentName": "source.js",
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "thyn-directives": {
+      "patterns": [
+        {
+          "match": "\\b:(on\\w*|if|each|key|class|style|[a-zA-Z][\\w-]*)(?:\\.[a-zA-Z][\\w-]*)*\\b",
+          "name": "entity.other.attribute-name.thyn-directive"
+        },
+        {
+          "begin": "(:on\\w*(?:\\.[a-zA-Z][\\w-]*)*)\\s*(=)\\s*([\"'])",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.other.attribute-name.thyn-directive"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.html"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.html"
+            }
+          },
+          "end": "\\3",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.html"
+            }
+          },
+          "name": "meta.attribute-value.thyn-event",
+          "contentName": "source.js",
+          "patterns": [
+            {
+              "include": "source.js"
+            }
+          ]
+        },
+        {
+          "begin": "(:[a-zA-Z][\\w-]*)\\s*(=)\\s*([\"'])",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.other.attribute-name.thyn-directive"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.html"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.html"
+            }
+          },
+          "end": "\\3",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.html"
+            }
+          },
+          "name": "meta.attribute-value.thyn-binding",
+          "contentName": "source.js",
+          "patterns": [
+            {
+              "include": "source.js"
+            }
+          ]
+        }
+      ]
+    },
+    "thyn-js-content": {
+      "patterns": [
+        {
+          "match": "\\$(?:state|effect|computed)\\b",
+          "name": "support.function.thyn-reactive"
+        },
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "tag-generic-attribute": {
+      "patterns": [
+        {
+          "begin": "\\b([a-zA-Z][a-zA-Z0-9\\-]*)\\s*(=)\\s*([\"'])",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.other.attribute-name.html"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.html"
+            },
+            "3": {
+              "name": "punctuation.definition.string.begin.html"
+            }
+          },
+          "end": "\\3",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.html"
+            }
+          },
+          "name": "string.quoted.html"
+        },
+        {
+          "match": "\\b([a-zA-Z][a-zA-Z0-9\\-]*)\\b",
+          "name": "entity.other.attribute-name.html"
+        }
+      ]
+    }
+  }
 }
