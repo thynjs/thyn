@@ -646,18 +646,18 @@ export function transformSFC(source: string, id: string) {
 
   const s = new MagicString("");
   if (!imports.some((imp) => imp.includes("$state"))) {
-    s.prepend("import { $state } from '@thyn-js/core';\n");
+    s.prepend("import { $state } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$effect"))) {
-    s.prepend("import { $effect } from '@thyn-js/core';\n");
+    s.prepend("import { $effect } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$computed"))) {
-    s.prepend("import { $computed } from '@thyn-js/core';\n");
+    s.prepend("import { $computed } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$compare"))) {
-    s.prepend("import { $compare } from '@thyn-js/core';\n");
+    s.prepend("import { $compare } from '@thyn/core';\n");
   }
-  s.prepend("import * as __SPARKI__CORE__ from '@thyn-js/core';\n");
+  s.prepend("import * as __SPARKI__CORE__ from '@thyn/core';\n");
   s.append(imports.join("\n") + "\n");
 
   let [root, transformed, hoist, scopedStyle] = transformHTMLtoJSX(html, style);
@@ -704,16 +704,16 @@ async function compileThynScript(source, id) {
   const s = new MagicString(source);
   const { imports } = splitScript(source);
   if (!imports.some((imp) => imp.includes("$state"))) {
-    s.prepend("import { $state } from '@thyn-js/core';\n");
+    s.prepend("import { $state } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$effect"))) {
-    s.prepend("import { $effect } from '@thyn-js/core';\n");
+    s.prepend("import { $effect } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$compare"))) {
-    s.prepend("import { $compare } from '@thyn-js/core';\n");
+    s.prepend("import { $compare } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$computed"))) {
-    s.prepend("import { $computed } from '@thyn-js/core';\n");
+    s.prepend("import { $computed } from '@thyn/core';\n");
   }
 
   let output = s.toString();
