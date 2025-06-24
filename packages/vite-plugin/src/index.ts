@@ -239,8 +239,12 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
   const tag = (node as Element).tagName.toLowerCase();
   const attrs = parseAttributes(node);
 
-  const statRoot = makeVariable();
+  let statRoot = makeVariable();
   let template = `const ${statRoot} = document.createElement("${tag}");\n`;
+  if (!parent) {
+    statRoot = "__THYN__template";//makeVariable();
+    template = `${statRoot} = document.createElement("${tag}");\n`;
+  }
   let code = "";
   let dynRoot = makeVariable();
   const childNodes = Array.from(node.childNodes).filter(n => n.nodeType !== 3 || n.textContent.trim());
@@ -252,7 +256,7 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
     ps = ch.root;
   }
   if (!parent) {
-    code = `const ${dynRoot} = ${statRoot}.cloneNode(true);\n`;
+    code = `const ${dynRoot} = __THYN__template_generate();\n`;
   } else if (!prevSibling) {
     code = `const ${dynRoot} = ${parent}.firstChild;\n`;
   } else {
@@ -616,7 +620,15 @@ function transformHTMLtoJSX(html: string, style: string) {
     return [root, `const ${root} = ${code};`, hoist, scopedStyle];
   }
   const { root, static: tmpl, dynamic } = makeTemplate(rootElement);
-  const hoist = [tmpl];
+  const hoist = [`
+  let __THYN__template;
+  function __THYN__template_generate() {
+    if (!__THYN__template) {
+      ${tmpl}
+      return __THYN__template;
+    }
+    return __THYN__template.cloneNode(true);
+  }`];
   return [root, dynamic, hoist, scopedStyle];
 }
 
