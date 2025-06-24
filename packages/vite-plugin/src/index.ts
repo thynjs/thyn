@@ -279,14 +279,14 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
     if (reactive) {
       val.raw = val.raw.replace(/^\(\) => /, "");
       if (key === "class") {
+        const prev = makeVariable();
+        code += `let ${prev};\n`;
         code += `$effect(() => {
             const val = ${val.raw};
-            if (val === undefined) {
-              if (${dynRoot}.className) {
-                ${dynRoot}.removeAttribute("class");
-              }
-            } else {
-              ${dynRoot}.className = val;
+            if (val !== ${prev}) {
+              if (val) ${dynRoot}.className = val;
+              else ${dynRoot}.removeAttribute("class")
+              ${prev} = val;
             }
           });\n`
         continue;
@@ -343,7 +343,8 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
     }
   }
 
-  if (parent && code.split("\n").length === 2) {
+  const lineCount = code.split("\n").length;
+  if (parent && lineCount === 2) {
     code = "";
   }
 
