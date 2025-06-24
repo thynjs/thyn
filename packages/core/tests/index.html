@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Tests</title>
+  <style>
+    body {
+      background: #333;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .test-result {
+      margin: 0;
+      margin-bottom: 5px;
+      padding: 5px 20px;
+      border-left: 5px solid;
+      border-radius: 3px;
+    }
+
+    .success {
+      border-color: #393;
+      background-color: #252;
+    }
+
+    .failure {
+      border-color: #933;
+      background-color: #533;
+    }
+
+    pre {
+      margin: 0;
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+      background: rgba(0, 0, 0, 0.25);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="test-results">
+    <h2 id="results-summary"></h2>
+  </div>
+  <script src="/tests/test.js" type="module"></script>
+</body>
+
+</html>
