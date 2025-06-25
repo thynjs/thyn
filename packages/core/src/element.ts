@@ -150,7 +150,7 @@ export function show(props) {
   let prevElem: Element | null = null;
 
   const eff = $effect(() => {
-    const currIndex = props.findIndex((c) => c.if());
+    const currIndex = props.findIndex((c) => !c.if || c.if());
     if (currIndex === prevIndex) {
       if (!prevElem) {
         prevElem = TEXT_NODE_TEMPLATE.cloneNode() as Element;
@@ -182,45 +182,6 @@ export function show(props) {
     prevIndex = currIndex;
   });
 
-  return prevElem;
-}
-
-export function show_old(props) {
-  let prevElem: Element | null = null;
-  let prevCondition = null;
-  const eff = $effect(() => {
-    const newCondition = props.if();
-    if (prevCondition === null) {
-      prevCondition = newCondition;
-      prevElem = newCondition
-        ? props.then()
-        : props.else?.() ?? TEXT_NODE_TEMPLATE.cloneNode();
-      return;
-    }
-    if (newCondition !== prevCondition) {
-      prevCondition = newCondition;
-      let newElem = newCondition
-        ? props.then()
-        : props.else?.() ?? TEXT_NODE_TEMPLATE.cloneNode();
-      const prevFx = effects.get(prevElem);
-      if (prevFx) {
-        effects.set(prevElem, prevFx.filter((f) => f !== eff));
-      }
-      const fx = effects.get(newElem);
-      if (fx) {
-        fx.push(eff);
-      } else {
-        effects.set(newElem, [eff]);
-      }
-      let td = prevElem;
-      queueMicrotask(() => {
-        teardown(td);
-        td.replaceWith(newElem);
-        td = null;
-      });
-      prevElem = newElem;
-    }
-  });
   return prevElem;
 }
 
