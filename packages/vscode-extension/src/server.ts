@@ -236,8 +236,7 @@ function createLanguageServiceHost(
   scriptContents.set("thyn:globals.d.ts", {
     version: 1,
     content: `
-      declare function $state<T>(initialValue: T): [() => T, (valueOrFn: T | ((current: T) => T)) => void];
-      declare function $computed<T>(fn: () => T): () => T;
+      declare function $signal<T>(value: T): ((() => T) | (((current: T) => T) => void) | ((value: T) => void));
       declare function $effect(fn: () => (() => void) | void): void;
       declare function $props<T = any>(): T;
     `,
@@ -983,7 +982,7 @@ connection.onCompletion(async ({ textDocument, position }) => {
       });
       return {
         items: items.map((i): CompletionItem => {
-          if (["$effect", "$state", "$computed", "$props"].includes(i.label)) {
+          if (["$effect", "$signal", "$props"].includes(i.label)) {
             return {
               ...i,
               insertText: i.label,

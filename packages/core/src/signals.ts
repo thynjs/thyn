@@ -24,7 +24,7 @@ export type Signal<T> = {
 };
 
 
-export function $state<T>(value: T): Signal<T> {
+export function $signal<T>(value: T): Signal<T> {
   const subscribers = new Set<any>();
 
   const signal: Signal<T> = (...args: [T] | [(prev: T) => T] | []) => {
@@ -61,7 +61,7 @@ export function $state<T>(value: T): Signal<T> {
  * Example:
  *
  * ```ts
- * const [selectedId, setSelectedId] = $state(null);
+ * const selectedId  = $signal(null);
  * const isSelected = $compare(selectedId);
  *
  * $effect(() => {
@@ -176,9 +176,3 @@ export function cleanup(effectFn) {
     effectFn.td = null;
   }
 }
-
-// export function $computed(fn) {
-//   const [result, setResult] = $state(undefined);
-//   $effect(() => setResult(fn()));
-//   return result;
-// }

@@ -277,7 +277,7 @@
     "thyn-js-content": {
       "patterns": [
         {
-          "match": "\\$(?:state|effect|computed)\\b",
+          "match": "\\$(?:signal|effect)\\b",
           "name": "support.function.thyn-reactive"
         },
         {

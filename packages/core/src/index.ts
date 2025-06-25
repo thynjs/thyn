@@ -13,4 +13,4 @@ export {
   show,
   terminalList,
 } from "./element";
-export { $compare, $effect, $state, type Signal } from "./signals";
+export { $compare, $effect, $signal, type Signal } from "./signals";

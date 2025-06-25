@@ -23,14 +23,14 @@ npm run dev
 
 ```vue
 <script>
-  const [count, setCount] = $state(0);
+  const count = $signal(0);
 
   $effect(() => {
     console.log(`Count is ${count()}`);
   });
 </script>
 
-<button :onclick="() => setCount(c => c + 1)">
+<button :onclick="() => count(c => c + 1)">
   Count: {{ count() }}
 </button>
 

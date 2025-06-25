@@ -658,8 +658,8 @@ export function transformSFC(source: string, id: string) {
   const { imports, body } = splitScript(script);
 
   const s = new MagicString("");
-  if (!imports.some((imp) => imp.includes("$state"))) {
-    s.prepend("import { $state } from '@thyn/core';\n");
+  if (!imports.some((imp) => imp.includes("$signal"))) {
+    s.prepend("import { $signal } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$effect"))) {
     s.prepend("import { $effect } from '@thyn/core';\n");
@@ -713,8 +713,8 @@ export async function compileSFC(source: string, id: string) {
 async function compileThynScript(source, id) {
   const s = new MagicString(source);
   const { imports } = splitScript(source);
-  if (!imports.some((imp) => imp.includes("$state"))) {
-    s.prepend("import { $state } from '@thyn/core';\n");
+  if (!imports.some((imp) => imp.includes("$signal"))) {
+    s.prepend("import { $signal } from '@thyn/core';\n");
   }
   if (!imports.some((imp) => imp.includes("$effect"))) {
     s.prepend("import { $effect } from '@thyn/core';\n");
