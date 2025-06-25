@@ -61,10 +61,10 @@
 <script>
 const code = document.querySelector("code");
 code.textContent = `<script>
-  const [count, setCount] = $state(0);
+  const count = $state(0);
 <\/script>
 
-<button :onclick="() => setCount(c => c + 1)">
+<button :onclick="() => count(c => c + 1)">
   Count: {{ count() }}
 </button>
 

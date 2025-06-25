@@ -17,31 +17,38 @@ function scheduleEffect(effectFn) {
   }
 }
 
-export function $state<T>(
-  initialValue: T,
-): [() => T, ((action: T | ((prev: T) => T)) => void)] {
-  let value = initialValue;
+export type Signal<T> = {
+  (): T;
+  (value: T): void;
+  (updater: (prev: T) => T): void;
+};
+
+
+export function $state<T>(value: T): Signal<T> {
   const subscribers = new Set<any>();
-  return [
-    () => {
+
+  const signal: Signal<T> = (...args: [T] | [(prev: T) => T] | []) => {
+    if (!args.length) {
       if (currentEffect) {
         subscribers.add(currentEffect);
         currentEffect.deps.add(subscribers);
       }
       return value;
-    },
-    (action) => {
-      const newValue = typeof action === "function"
-        ? (action as Function)(value)
-        : action;
-      if (newValue !== value) {
-        value = newValue;
-        for (const sub of subscribers) {
-          scheduleEffect(sub);
-        }
+    }
+
+    const action = args[0];
+    const newValue = typeof action === "function"
+      ? (action as (prev: T) => T)(value)
+      : action;
+
+    if (newValue !== value) {
+      value = newValue;
+      for (const sub of subscribers) {
+        scheduleEffect(sub);
       }
-    },
-  ];
+    }
+  };
+  return signal;
 }
 
 /**
@@ -170,8 +177,8 @@ export function cleanup(effectFn) {
   }
 }
 
-export function $computed(fn) {
-  const [result, setResult] = $state(undefined);
-  $effect(() => setResult(fn()));
-  return result;
-}
+// export function $computed(fn) {
+//   const [result, setResult] = $state(undefined);
+//   $effect(() => setResult(fn()));
+//   return result;
+// }
