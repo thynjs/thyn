@@ -105,12 +105,15 @@ function parseTextContent(text: string) {
     return `$\{${part.expr}\}`;
   }).join("");
   if (hasReactive) {
-    let code = `__SPARKI__CORE__.createReactiveTextNode(() => \`${interpolated}\`)`;
+    let code =
+      `__THYN__CORE__.createReactiveTextNode(() => \`${interpolated}\`)`;
     const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
       ecmaVersion: 2022,
     });
     if (ast.type === "CallExpression" && !ast.arguments.length) {
-      code = `__SPARKI__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")})`;
+      code = `__THYN__CORE__.createReactiveTextNode(${
+        interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
+      })`;
     }
     return {
       code,
@@ -129,7 +132,11 @@ function parseTextContent(text: string) {
   };
 }
 
-function generateTextContentTemplate(text: string, parent: string, prevSibling?: string): { root: string, static: string, dynamic: string, staticRoot: string } {
+function generateTextContentTemplate(
+  text: string,
+  parent: string,
+  prevSibling?: string,
+): { root: string; static: string; dynamic: string; staticRoot: string } {
   text = text.trim();
   const regex = /\{\{([^}]+)\}\}/g;
   let lastIndex = 0;
@@ -154,7 +161,12 @@ function generateTextContentTemplate(text: string, parent: string, prevSibling?:
   }
   const root = makeVariable();
   if (!hasInterpolations) {
-    return { static: `const ${root} = document.createTextNode(\`${text}\`);\n`, dynamic: "", root: "", staticRoot: root }; // plain text
+    return {
+      static: `const ${root} = document.createTextNode(\`${text}\`);\n`,
+      dynamic: "",
+      root: "",
+      staticRoot: root,
+    }; // plain text
   }
   const interpolated = parts.map((part) => {
     if (typeof part === "string") {
@@ -162,7 +174,9 @@ function generateTextContentTemplate(text: string, parent: string, prevSibling?:
     }
     return `$\{${part.expr}\}`;
   }).join("");
-  const textNode = prevSibling ? `${prevSibling}.nextSibling` : `${parent}.firstChild`;
+  const textNode = prevSibling
+    ? `${prevSibling}.nextSibling`
+    : `${parent}.firstChild`;
   if (hasReactive) {
     let fn = `(() => \`${interpolated}\`)`;
     const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
@@ -230,7 +244,11 @@ function makeVariable() {
   return `${NAMESPACE}${varId++}`;
 }
 
-function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root: string, staticRoot: string, static: string, dynamic: string } {
+function makeTemplate(
+  node: Node,
+  parent?: string,
+  prevSibling?: string,
+): { root: string; staticRoot: string; static: string; dynamic: string } {
   if (node.nodeType === 3) {
     const text = node.textContent;
     return generateTextContentTemplate(text, parent, prevSibling);
@@ -242,12 +260,14 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
   let statRoot = makeVariable();
   let template = `const ${statRoot} = document.createElement("${tag}");\n`;
   if (!parent) {
-    statRoot = "__THYN__template";//makeVariable();
+    statRoot = "__THYN__template"; //makeVariable();
     template = `${statRoot} = document.createElement("${tag}");\n`;
   }
   let code = "";
   let dynRoot = makeVariable();
-  const childNodes = Array.from(node.childNodes).filter(n => n.nodeType !== 3 || n.textContent.trim());
+  const childNodes = Array.from(node.childNodes).filter((n) =>
+    n.nodeType !== 3 || n.textContent.trim()
+  );
   const children = [];
   let ps: string | undefined = undefined;
   for (const cn of childNodes) {
@@ -292,7 +312,7 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
               else ${dynRoot}.removeAttribute("class")
               ${prev} = val;
             }
-          });\n`
+          });\n`;
         continue;
       }
       if (key.includes("-")) {
@@ -308,7 +328,7 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
               ${dynRoot}.setAttribute("${key}", val);\n
             }
             ${ran} = true;
-          });\n`
+          });\n`;
       } else {
         code += `$effect(() => {
           const val = ${val.raw};
@@ -319,7 +339,7 @@ function makeTemplate(node: Node, parent?: string, prevSibling?: string): { root
           } else {
             ${dynRoot}.${key} = val;\n
           }
-        });\n`
+        });\n`;
       }
       continue;
     }
@@ -378,7 +398,9 @@ function walk(node, hoist: string[]) {
   const tag = el.tagName.toLowerCase();
 
   let isComponent = el.hasAttribute("__thyn_component");
-  const makeArg = isComponent ? el.getAttribute("__thyn_component") : `"${tag}"`;
+  const makeArg = isComponent
+    ? el.getAttribute("__thyn_component")
+    : `"${tag}"`;
   el.removeAttribute("__thyn_component");
   const attrs = parseAttributes(el);
   const children = Array.from(el.childNodes).map((n) => walk(n, hoist))
@@ -391,7 +413,9 @@ function walk(node, hoist: string[]) {
   let hasReactive = hasReactiveChildren || hasComponentChildren;
   if (tag === "slot") {
     return {
-      code: `...$props.slot ?? ${children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"}`,
+      code: `...$props.slot ?? ${
+        children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"
+      }`,
       isComponent: false,
       hasReactive,
     };
@@ -409,7 +433,7 @@ function walk(node, hoist: string[]) {
     if (children.length) {
       props.slot = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
     }
-    code = `__SPARKI__CORE__.component(${makeArg}, ${createObjectCode(props)})`;
+    code = `__THYN__CORE__.component(${makeArg}, ${createObjectCode(props)})`;
   } else {
     code = createHoisting(`document.createElement(${makeArg})`, hoist);
     for (const [key, val] of Object.entries(attrs)) {
@@ -417,12 +441,16 @@ function walk(node, hoist: string[]) {
       if ("quoted" in val) {
         if (key === "class" || key.includes("-")) {
           code = createHoisting(
-            `__SPARKI__CORE__.setAttribute(${cloneIfNeeded(code)}, "${key}", "${val.quoted}")`,
+            `__THYN__CORE__.setAttribute(${
+              cloneIfNeeded(code)
+            }, "${key}", "${val.quoted}")`,
             hoist,
           );
         } else {
           code = createHoisting(
-            `__SPARKI__CORE__.setProperty(${cloneIfNeeded(code)}, "${key}", "${val.quoted}")`,
+            `__THYN__CORE__.setProperty(${
+              cloneIfNeeded(code)
+            }, "${key}", "${val.quoted}")`,
             hoist,
           );
         }
@@ -432,7 +460,9 @@ function walk(node, hoist: string[]) {
       if (["each", "if", "then"].includes(key)) continue;
       if (!("raw" in val)) continue;
       if (key.startsWith("on")) {
-        code = `__SPARKI__CORE__.setProperty(${cloneIfNeeded(code)}, "${key}", ${val.raw})`;
+        code = `__THYN__CORE__.setProperty(${
+          cloneIfNeeded(code)
+        }, "${key}", ${val.raw})`;
         continue;
       }
       const reactive = isReactiveExpression(val.raw.replace(/^\(\) => /, ""));
@@ -440,36 +470,50 @@ function walk(node, hoist: string[]) {
         hasOwnEffects = true;
         hasReactive = true;
         if (key === "class" || key.includes("-")) {
-          code = `__SPARKI__CORE__.setReactiveAttribute(${cloneIfNeeded(code)}, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveAttribute(${
+            cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
         } else {
-          code = `__SPARKI__CORE__.setReactiveProperty(${cloneIfNeeded(code)}, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveProperty(${
+            cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
         }
         continue;
       }
       if (key === "class" || key.includes("-")) {
         code = createHoisting(
-          `__SPARKI__CORE__.setAttribute(${cloneIfNeeded(code)}, "${key}", ${val.raw})`,
+          `__THYN__CORE__.setAttribute(${
+            cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`,
           hoist,
         );
       } else {
         code = createHoisting(
-          `__SPARKI__CORE__.setProperty(${cloneIfNeeded(code)}, "${key}", ${val.raw})`,
+          `__THYN__CORE__.setProperty(${
+            cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`,
           hoist,
         );
       }
     }
     if (children.length) {
-      code = `__SPARKI__CORE__.addChildren(${cloneIfNeeded(code)}, [${children.map((c) => cloneIfNeeded(c.code)).join(", ")}])`;
+      code = `__THYN__CORE__.addChildren(${cloneIfNeeded(code)}, [${
+        children.map((c) => cloneIfNeeded(c.code)).join(", ")
+      }])`;
     }
     if (!hasOwnEffects && hasReactiveChildren) {
-      code = `__SPARKI__CORE__.markAsReactive(${cloneIfNeeded(code)})`;
+      code = `__THYN__CORE__.markAsReactive(${cloneIfNeeded(code)})`;
     }
   }
 
   if ("each" in attrs && "raw" in attrs.each) {
     const eachAttr = attrs.each.raw;
     const [item, iterable] = eachAttr.split(" in ").map((s) => s.trim());
-    code = `__SPARKI__CORE__.component(${hasComponentChildren ? "__SPARKI__CORE__.list" : "__SPARKI__CORE__.terminalList"}, {
+    code = `__THYN__CORE__.component(${
+      hasComponentChildren
+        ? "__THYN__CORE__.list"
+        : "__THYN__CORE__.terminalList"
+    }, {
       items: () => ${iterable},
       render: (${item}) => ${code},
     })`;
@@ -478,7 +522,7 @@ function walk(node, hoist: string[]) {
 
   if ("if" in attrs && "raw" in attrs.if) {
     const ifCond = attrs.if.raw;
-    code = `__SPARKI__CORE__.component(__SPARKI__CORE__.show, {
+    code = `__THYN__CORE__.component(__THYN__CORE__.show, {
       if: () => ${ifCond},
       then: () => ${code},
     })`;
@@ -504,7 +548,9 @@ function hasComponentChildren(node: Element): boolean {
   for (const attr of node.attributes) {
     if ([":each", ":if", ":then"].includes(attr.name)) return true;
   }
-  return Array.from(node.childNodes).some((n) => hasComponentChildren(n as Element));
+  return Array.from(node.childNodes).some((n) =>
+    hasComponentChildren(n as Element)
+  );
 }
 
 const forcedChildren = new Map([
@@ -516,7 +562,8 @@ const forcedChildren = new Map([
   ["select", "option"],
 ]);
 
-const COMPONENT_TAG_REGEX = /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
+const COMPONENT_TAG_REGEX =
+  /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
 function preprocessHTML(html: string): string {
   html = addComponentAttributes(html);
@@ -557,7 +604,13 @@ function addComponentAttributes(html: string): string {
             const isClosing = componentMatch.startsWith("</");
             return isClosing
               ? `</${childTag}>`
-              : selfClose ? `<${childTag}${attributes || ""} __thyn_component="${componentName}"/>` : `<${childTag}${attributes || ""} __thyn_component="${componentName}">`;
+              : selfClose
+              ? `<${childTag}${
+                attributes || ""
+              } __thyn_component="${componentName}"/>`
+              : `<${childTag}${
+                attributes || ""
+              } __thyn_component="${componentName}">`;
           },
         );
         return `<${parentTag}${attributes}>${processedContent}</${parentTag}>`;
@@ -572,8 +625,8 @@ function addComponentAttributes(html: string): string {
       return isClosing
         ? "</div>"
         : selfClose
-          ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
-          : `<div${attributes || ""} __thyn_component="${componentName}">`;
+        ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
+        : `<div${attributes || ""} __thyn_component="${componentName}">`;
     },
   );
 
@@ -593,7 +646,8 @@ function transformHTMLtoJSX(html: string, style: string) {
   const processedHTML = preprocessHTML(html);
   div.innerHTML = "<template>" + processedHTML + "</template>";
   const template = div.firstElementChild;
-  const rootElement = (template as HTMLTemplateElement).content.firstElementChild;
+  const rootElement =
+    (template as HTMLTemplateElement).content.firstElementChild;
 
   let scopedStyle = null;
   if (style) {
@@ -667,7 +721,7 @@ export function transformSFC(source: string, id: string) {
   if (!imports.some((imp) => imp.includes("$compare"))) {
     s.prepend("import { $compare } from '@thyn/core';\n");
   }
-  s.prepend("import * as __SPARKI__CORE__ from '@thyn/core';\n");
+  s.prepend("import * as __THYN__CORE__ from '@thyn/core';\n");
   s.append(imports.join("\n") + "\n");
 
   let [root, transformed, hoist, scopedStyle] = transformHTMLtoJSX(html, style);
@@ -757,7 +811,7 @@ export default function thyn() {
     enforce: "pre",
 
     configResolved(config) {
-      isDev = config.command === 'serve';
+      isDev = config.command === "serve";
     },
 
     buildStart() {

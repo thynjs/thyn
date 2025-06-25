@@ -43,6 +43,94 @@ const htmlCache = new Map<
   { document: HTMLTextDocument; stylesheet: any; version: number }
 >();
 
+function getTypeScriptLibDirectory(): string {
+  // Convert any numeric paths to strings first
+  const safeRequireResolve = (module: string): string | null => {
+    try {
+      return require.resolve(module);
+    } catch (error) {
+      console.warn(`require.resolve("${module}") failed:`, error);
+      return null;
+    }
+  };
+
+  // Method 1: Direct resolution from typescript module
+  try {
+    const tsPath = safeRequireResolve("typescript");
+    if (tsPath) {
+      const libPath = path.join(path.dirname(tsPath), "lib");
+      if (validateLibDirectory(libPath)) {
+        return libPath;
+      }
+    }
+  } catch (error) {
+    console.warn("Primary resolution failed:", error);
+  }
+
+  // Method 2: Check node_modules paths systematically
+  const searchPaths = [
+    // Local installations
+    ...(require.resolve.paths?.("typescript") || []).map((p) =>
+      path.join(p, "typescript", "lib")
+    ),
+    // Global installations
+    path.join(
+      process.execPath,
+      "..",
+      "..",
+      "lib",
+      "node_modules",
+      "typescript",
+      "lib",
+    ),
+    path.join(
+      require.main?.path || process.cwd(),
+      "node_modules",
+      "typescript",
+      "lib",
+    ),
+    // Fallback locations
+    path.dirname(ts.getDefaultLibFilePath({})),
+  ].filter(Boolean);
+
+  for (const libPath of searchPaths) {
+    try {
+      if (validateLibDirectory(String(libPath))) {
+        return String(libPath);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  // Final fallback - use TypeScript's bundled declaration if available
+  const bundledPath = path.join(__dirname, "lib.dom.d.ts");
+  if (fs.existsSync(bundledPath)) {
+    return path.dirname(bundledPath);
+  }
+
+  throw new Error(
+    `Could not locate TypeScript lib directory after checking:
+    ${searchPaths.map((p) => `\n- ${p}`).join("")}`,
+  );
+}
+
+/**
+ * Validates a directory contains essential TypeScript lib files
+ */
+function validateLibDirectory(dirPath: string | number): boolean {
+  try {
+    const pathStr = String(dirPath);
+    return (
+      fs.existsSync(pathStr) &&
+      fs.existsSync(path.join(pathStr, "lib.dom.d.ts")) &&
+      fs.existsSync(path.join(pathStr, "lib.esnext.d.ts"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
   hasConfigurationCapability = !!(
@@ -80,7 +168,7 @@ connection.onInitialized(() => {
 interface LanguageServiceHost extends ts.LanguageServiceHost {
   getScriptFileNames(): string[];
   getScriptVersion(fileName: string): string;
-  getScriptSnapshot(fileName: string): ts.IScriptSnapshot;
+  getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined;
   getCurrentDirectory(): string;
   getCompilationSettings(): ts.CompilerOptions;
   getDefaultLibFileName(options: ts.CompilerOptions): string;
@@ -103,16 +191,14 @@ interface LanguageServiceHost extends ts.LanguageServiceHost {
 
 function uriToFsPath(uri: string): string {
   if (uri.startsWith("file://")) {
-    // Handle Windows paths properly
     const decoded = decodeURIComponent(uri.substring("file://".length));
-    return decoded.replace(/^\/([A-Za-z]:)/, "$1"); // Convert /C: to C:
+    return decoded.replace(/^\/([A-Za-z]:)/, "$1");
   }
   return uri;
 }
 
 function fsPathToUri(fsPath: string): string {
   const normalized = path.resolve(fsPath).replace(/\\/g, "/");
-  // Handle Windows drive letters
   const withPrefix = normalized.replace(/^([A-Za-z]:)/, "/$1");
   return "file://" + encodeURI(withPrefix).replace(/#/g, "%23");
 }
@@ -122,45 +208,31 @@ function resolveThynModule(
   containingFile: string,
 ): string | undefined {
   const containingDir = path.dirname(uriToFsPath(containingFile));
-
-  // Handle relative imports
   if (moduleName.startsWith("./") || moduleName.startsWith("../")) {
     const resolvedPath = path.resolve(containingDir, moduleName);
-
-    // Try with .thyn extension first
     const thynPath = resolvedPath + ".thyn";
     if (fs.existsSync(thynPath)) {
       return fsPathToUri(thynPath);
     }
-
-    // Try with .js extension
     const jsPath = resolvedPath + ".js";
     if (fs.existsSync(jsPath)) {
       return fsPathToUri(jsPath);
     }
-
-    // Try with .ts extension
     const tsPath = resolvedPath + ".ts";
     if (fs.existsSync(tsPath)) {
       return fsPathToUri(tsPath);
     }
-
-    // Try without extension if it already has an extension
     if (fs.existsSync(resolvedPath)) {
       return fsPathToUri(resolvedPath);
     }
-
-    // Try index files
     const indexThyn = path.join(resolvedPath, "index.thyn");
     if (fs.existsSync(indexThyn)) {
       return fsPathToUri(indexThyn);
     }
-
     const indexJs = path.join(resolvedPath, "index.js");
     if (fs.existsSync(indexJs)) {
       return fsPathToUri(indexJs);
     }
-
     const indexTs = path.join(resolvedPath, "index.ts");
     if (fs.existsSync(indexTs)) {
       return fsPathToUri(indexTs);
@@ -227,7 +299,6 @@ function getDefaultCompilerOptions(): ts.CompilerOptions {
   };
 }
 
-// Track all .thyn files discovered during resolution
 const thynFiles = new Set<string>();
 
 function createLanguageServiceHost(
@@ -236,9 +307,14 @@ function createLanguageServiceHost(
   scriptContents.set("thyn:globals.d.ts", {
     version: 1,
     content: `
-      declare function $signal<T>(value: T): ((() => T) | (((current: T) => T) => void) | ((value: T) => void));
+      declare type Signal<T> = {
+        (): T;
+        (value: T): void;
+        (updater: (prev: T) => T): void;
+      };
+      declare function $signal<T>(value: T): Signal<T>;
       declare function $effect(fn: () => (() => void) | void): void;
-      declare function $props<T = any>(): T;
+      declare const $props: T;
     `,
   });
 
@@ -261,6 +337,15 @@ function createLanguageServiceHost(
 
   const currentDirectory = process.cwd();
 
+  let tsLibDirectory: string;
+  try {
+    tsLibDirectory = getTypeScriptLibDirectory();
+  } catch (e) {
+    console.error("Failed to find TypeScript lib directory:", e);
+    // Fallback to a reasonable default
+    tsLibDirectory = path.join(__dirname, "../node_modules/typescript/lib");
+  }
+
   const host: LanguageServiceHost = {
     resolveModuleNames: (
       moduleNames: string[],
@@ -268,20 +353,13 @@ function createLanguageServiceHost(
     ): (ts.ResolvedModule | undefined)[] => {
       return moduleNames.map((moduleName) => {
         console.log(`Resolving "${moduleName}" from "${containingFile}"`);
-
-        // Convert URI to file system path for resolution
         const containingFilePath = uriToFsPath(containingFile);
-
-        // First try custom resolution for .thyn and relative .js files
         const customResolved = resolveThynModule(moduleName, containingFile);
         if (customResolved) {
           const resolvedPath = uriToFsPath(customResolved);
           const extension = path.extname(resolvedPath);
-
-          // Track .thyn files so they're included in the project
           if (extension === ".thyn") {
             thynFiles.add(customResolved);
-            // Also add the transformed version to script contents
             try {
               const content = fs.readFileSync(resolvedPath, "utf8");
               const parsed = parseThyn(content);
@@ -304,8 +382,6 @@ function createLanguageServiceHost(
             extension: extension as ts.Extension,
           };
         }
-
-        // Let TypeScript handle standard module resolution
         const result = ts.resolveModuleName(
           moduleName,
           containingFilePath,
@@ -313,7 +389,6 @@ function createLanguageServiceHost(
           {
             ...ts.sys,
             fileExists: (fileName: string) => {
-              // Normalize the fileName
               const normalizedFileName = path.resolve(fileName);
               const uri = fsPathToUri(normalizedFileName);
 
@@ -365,8 +440,6 @@ function createLanguageServiceHost(
           `TypeScript resolution result for "${moduleName}":`,
           result,
         );
-
-        // Convert resolved path back to URI if found
         if (result.resolvedModule) {
           const resolvedFileName = result.resolvedModule.resolvedFileName;
           const uri = resolvedFileName.startsWith("file://")
@@ -378,71 +451,92 @@ function createLanguageServiceHost(
             resolvedFileName: uri,
           };
         }
-
         return result.resolvedModule;
       });
     },
 
     getScriptFileNames: () => {
-      // Include all cached files plus discovered .thyn files
-      const allFiles = new Set([
-        ...Array.from(scriptContents.keys()),
-        ...Array.from(thynFiles),
-        ...mainDocuments.all().map((doc) => doc.uri),
-      ]);
-
+      const allFiles = new Set<string>();
+      allFiles.add("thyn:globals.d.ts");
+      allFiles.add("thyn:module-types.d.ts");
+      for (const fileName of scriptContents.keys()) {
+        if (fileName.startsWith("file://")) {
+          allFiles.add(fileName);
+        } else if (fileName.startsWith("/") || fileName.match(/^[A-Za-z]:/)) {
+          allFiles.add(fsPathToUri(fileName));
+        } else {
+          allFiles.add(fileName);
+        }
+      }
+      for (const thynFile of thynFiles) {
+        allFiles.add(thynFile);
+      }
+      for (const doc of mainDocuments.all()) {
+        allFiles.add(doc.uri);
+      }
       const fileNames = Array.from(allFiles);
       console.log("[getScriptFileNames]", fileNames);
       return fileNames;
     },
 
-    getScriptSnapshot: (fileName: string): ts.IScriptSnapshot => {
+    getScriptSnapshot: (fileName: string): ts.IScriptSnapshot | undefined => {
       console.log(`[getScriptSnapshot] ${fileName}`);
-
-      // Check cache first
       const entry = scriptContents.get(fileName);
       if (entry) {
         return ts.ScriptSnapshot.fromString(entry.content);
       }
-
-      // Convert URI to file path if needed
-      const filePath = uriToFsPath(fileName);
-      const cacheEntry = scriptContents.get(filePath);
-      if (cacheEntry) {
-        return ts.ScriptSnapshot.fromString(cacheEntry.content);
+      if (fileName.startsWith("file://")) {
+        const filePath = uriToFsPath(fileName);
+        const pathEntry = scriptContents.get(filePath);
+        if (pathEntry) {
+          return ts.ScriptSnapshot.fromString(pathEntry.content);
+        }
       }
-
-      // Try to read from file system
+      if (fileName.startsWith("/") || fileName.match(/^[A-Za-z]:/)) {
+        const uri = fsPathToUri(fileName);
+        const uriEntry = scriptContents.get(uri);
+        if (uriEntry) {
+          return ts.ScriptSnapshot.fromString(uriEntry.content);
+        }
+      }
       try {
+        const filePath = fileName.startsWith("file://")
+          ? uriToFsPath(fileName)
+          : fileName;
         if (fs.existsSync(filePath)) {
           const content = fs.readFileSync(filePath, "utf8");
-
-          // Transform .thyn files
           if (filePath.endsWith(".thyn")) {
             const parsed = parseThyn(content);
             return ts.ScriptSnapshot.fromString(parsed.script.content);
           }
-
           return ts.ScriptSnapshot.fromString(content);
         }
       } catch (error) {
         console.warn(`Failed to read file ${fileName}:`, error);
       }
 
-      return ts.ScriptSnapshot.fromString("");
+      return undefined;
     },
 
     getScriptVersion: (fileName: string) => {
       if (scriptContents.has(fileName)) {
         return scriptContents.get(fileName)!.version.toString();
       }
-
-      const filePath = uriToFsPath(fileName);
-      if (scriptContents.has(filePath)) {
-        return scriptContents.get(filePath)!.version.toString();
+      if (fileName.startsWith("file://")) {
+        const filePath = uriToFsPath(fileName);
+        if (scriptContents.has(filePath)) {
+          return scriptContents.get(filePath)!.version.toString();
+        }
+      } else if (fileName.startsWith("/") || fileName.match(/^[A-Za-z]:/)) {
+        const uri = fsPathToUri(fileName);
+        if (scriptContents.has(uri)) {
+          return scriptContents.get(uri)!.version.toString();
+        }
       }
-
       try {
+        const filePath = fileName.startsWith("file://")
+          ? uriToFsPath(fileName)
+          : fileName;
         const stats = fs.statSync(filePath);
         return stats.mtimeMs.toString();
       } catch {
@@ -452,8 +546,13 @@ function createLanguageServiceHost(
 
     getCurrentDirectory: () => currentDirectory,
     getCompilationSettings: () => compilerOptions,
-    getDefaultLibFileName: (options: ts.CompilerOptions) =>
-      ts.getDefaultLibFilePath(options),
+    getDefaultLibFileName: (options: ts.CompilerOptions): string => {
+      // Return the correct lib file path
+      const libFileName = ts.getDefaultLibFileName(options);
+      const fullPath = path.join(tsLibDirectory, libFileName);
+      console.log(`[getDefaultLibFileName] ${fullPath}`);
+      return fullPath;
+    },
 
     log: (s) => console.log(`[TS Host] ${s}`),
     trace: (s) => console.log(`[TS Host Trace] ${s}`),
@@ -461,6 +560,15 @@ function createLanguageServiceHost(
     getNewLine: () => "\n",
 
     fileExists: (fileName: string): boolean => {
+      if (fileName.includes("lib.") && fileName.endsWith(".d.ts")) {
+        const libFileName = path.basename(fileName);
+        const fullLibPath = path.join(tsLibDirectory, libFileName);
+        const exists = fs.existsSync(fullLibPath);
+        console.log(
+          `[fileExists] TypeScript lib ${fileName} -> ${exists} (checking ${fullLibPath})`,
+        );
+        return exists;
+      }
       const filePath = uriToFsPath(fileName);
       const normalizedPath = path.resolve(filePath);
       const uri = fsPathToUri(normalizedPath);
@@ -476,6 +584,23 @@ function createLanguageServiceHost(
     },
 
     readFile: (fileName: string, encoding?: string): string => {
+      if (fileName.includes("lib.") && fileName.endsWith(".d.ts")) {
+        const libFileName = path.basename(fileName);
+        const fullLibPath = path.join(tsLibDirectory, libFileName);
+        try {
+          const content = fs.readFileSync(fullLibPath, "utf8");
+          console.log(
+            `[readFile] TypeScript lib ${fileName} (from ${fullLibPath})`,
+          );
+          return content;
+        } catch (e) {
+          console.error(
+            `[readFile] Failed to read TypeScript lib ${fileName}:`,
+            e,
+          );
+          return "";
+        }
+      }
       const filePath = uriToFsPath(fileName);
       const normalizedPath = path.resolve(filePath);
       const uri = fsPathToUri(normalizedPath);
@@ -573,30 +698,34 @@ function createLanguageServiceHost(
     updateDocument: (uri: string, content: string, version: number) => {
       console.log(`[updateDocument] ${uri} v${version}`);
 
+      // Always store using the URI format as the primary key
+      const normalizedUri = uri.startsWith("file://") ? uri : fsPathToUri(uri);
+
       // If it's a .thyn file, transform it and store both versions
-      if (uri.endsWith(".thyn")) {
-        thynFiles.add(uri);
+      if (normalizedUri.endsWith(".thyn")) {
+        thynFiles.add(normalizedUri);
         try {
-          const parsed = parseThyn(content);
-          scriptContents.set(uri, { content: parsed.script.content, version });
+          scriptContents.set(normalizedUri, {
+            content: content,
+            version,
+          });
         } catch (e) {
-          console.error(`Failed to parse .thyn file ${uri}:`, e);
-          scriptContents.set(uri, { content: "", version });
+          console.error(`Failed to parse .thyn file ${normalizedUri}:`, e);
+          scriptContents.set(normalizedUri, { content: "", version });
         }
       } else {
-        scriptContents.set(uri, { content, version });
+        scriptContents.set(normalizedUri, { content, version });
       }
 
-      // Also cache by file path for easier lookup
-      const filePath = uriToFsPath(uri);
-      if (filePath !== uri) {
-        if (uri.endsWith(".thyn")) {
-          thynFiles.add(filePath);
-        }
-        const cached = scriptContents.get(uri);
-        if (cached) {
-          scriptContents.set(filePath, cached);
-        }
+      // Remove any old entries with different formats to avoid duplicates
+      const filePath = uriToFsPath(normalizedUri);
+      if (filePath !== normalizedUri && scriptContents.has(filePath)) {
+        scriptContents.delete(filePath);
+      }
+
+      // Also remove the original uri if it was different from normalized
+      if (uri !== normalizedUri && scriptContents.has(uri)) {
+        scriptContents.delete(uri);
       }
     },
   };
@@ -790,30 +919,18 @@ connection.onHover(async ({ textDocument, position }) => {
       return null;
     }
 
-    // Make sure the document is up to date in the TypeScript service
     const scriptEntry = scriptContents.get(textDocument.uri);
     if (!scriptEntry || scriptEntry.version !== doc.version) {
       console.log("Updating TypeScript service with latest content");
       tsLanguageServiceHost.updateDocument(
         textDocument.uri,
-        content,
+        parsed.script.content,
         doc.version,
       );
     }
 
     const scriptContentRelativeOffset = offset -
       parsed.script.contentStartOffset;
-
-    console.log(
-      `Getting hover info at offset ${scriptContentRelativeOffset} in ${textDocument.uri}: ${parsed.script.content.slice(
-        scriptContentRelativeOffset - 10,
-        scriptContentRelativeOffset + 10,
-      )
-      }`,
-    );
-
-    // Use the TypeScript language service with the document URI
-    // The language service should already have the transformed content
     const hoverInfo = tsLanguageService.getQuickInfoAtPosition(
       textDocument.uri,
       scriptContentRelativeOffset,

@@ -23,7 +23,6 @@ export type Signal<T> = {
   (updater: (prev: T) => T): void;
 };
 
-
 export function $signal<T>(value: T): Signal<T> {
   const subscribers = new Set<any>();
 
@@ -108,7 +107,6 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
       if (!subs) map.set(value, subs = new Set());
       subs.add(currentEffect);
       currentEffect.deps.add(subs);
-
 
       const teardownFn = () => {
         subs.delete(currentEffect);
