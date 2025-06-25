@@ -58,8 +58,11 @@ function parseAttributes(el) {
           }
         }
       }
-      const reactive = isReactiveExpression(value);
-      if (reactive && name !== ":key" && name !== ":each" && name !== ":if") {
+      const reactive = value && isReactiveExpression(value);
+      if (
+        reactive && name !== ":key" && name !== ":each" && name !== ":if" &&
+        name !== ":else-if"
+      ) {
         value = `() => ${value}`;
         result[name.slice(1)] = { raw: value };
       } else {
@@ -380,7 +383,28 @@ function makeTemplate(
   };
 }
 
-function walk(node, hoist: string[]) {
+function walkConditionChain(nodes: Node[], i: number) {
+  const chain = [];
+  for (; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.nodeType !== 1) continue;
+
+    const el = node as Element;
+    const attrs = parseAttributes(el);
+
+    if ("if" in attrs || "else-if" in attrs || "else" in attrs) {
+      chain.push({ node, attrs });
+    } else {
+      break;
+    }
+
+    // Stop after :else since nothing can follow it
+    if ("else" in attrs) break;
+  }
+  return chain;
+}
+
+function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   if (node.nodeType === 3) {
     const text = node.textContent;
     if (!text.trim()) return null;
@@ -403,11 +427,23 @@ function walk(node, hoist: string[]) {
     : `"${tag}"`;
   el.removeAttribute("__thyn_component");
   const attrs = parseAttributes(el);
-  const children = Array.from(el.childNodes).map((n) => walk(n, hoist))
-    .filter(
-      Boolean,
-    );
+  if (isComponent) el.setAttribute("__thyn_component", makeArg);
 
+  const children = [];
+  let skip = 0;
+  for (let i = 0; i < node.childNodes.length; i++) {
+    const result = walk(node.childNodes[i], hoist, node.childNodes, i);
+    if (result) {
+      if (skip) {
+        skip--;
+        continue;
+      }
+      children.push(result);
+      if ("skip" in result) {
+        skip = result.skip;
+      }
+    }
+  }
   const hasReactiveChildren = children.some((c) => c.hasReactive);
   const hasComponentChildren = children.some((c) => c.isComponent);
   let hasReactive = hasReactiveChildren || hasComponentChildren;
@@ -520,13 +556,32 @@ function walk(node, hoist: string[]) {
     isComponent = true;
   }
 
-  if ("if" in attrs && "raw" in attrs.if) {
-    const ifCond = attrs.if.raw;
-    code = `__THYN__CORE__.component(__THYN__CORE__.show, {
-      if: () => ${ifCond},
-      then: () => ${code},
-    })`;
-    isComponent = true;
+  if ("if" in attrs) {
+    const chain = walkConditionChain(siblings, index);
+    const branches = [];
+    for (const entry of chain) {
+      const subEl = entry.node;
+      const subAttrs = entry.attrs;
+      subEl.removeAttribute(":if");
+      subEl.removeAttribute(":else-if");
+      subEl.removeAttribute(":else");
+      const ch = walk(subEl, hoist);
+      if ("if" in subAttrs || "else-if" in subAttrs) {
+        const cond = subAttrs.if?.raw ?? subAttrs["else-if"].raw;
+        branches.push(`{ if: () => ${cond}, then: () => ${ch.code} }`);
+      } else if ("else" in subAttrs) {
+        branches.push(`{ then: () => ${ch.code} }`);
+      }
+    }
+    code = `__THYN__CORE__.component(__THYN__CORE__.show, [\n${
+      branches.join(",\n")
+    }\n])`;
+    return {
+      code,
+      isComponent: true,
+      hasReactive: true,
+      skip: chain.length - 1,
+    };
   }
 
   return {

@@ -145,44 +145,47 @@ function remove(elem) {
   elem.remove();
 }
 
-// export function first(props) {
-//   let prevIndex = -1;
-//   let prevElem: Element | null = null;
-
-//   const eff = $effect(() => {
-//     const currIndex = props.cases.findIndex((c) => c.condition());
-//     if (currIndex === prevIndex) {
-//       if (!prevElem) {
-//         prevElem = props.default?.() ?? document.createTextNode("");
-//       }
-//       return;
-//     }
-//     let newElem;
-//     if (currIndex < 0) {
-//       if (props.default) newElem = props.default();
-//       else newElem = document.createTextNode("");
-//     } else {
-//       newElem = props.cases[currIndex].element();
-//     }
-//     if (prevElem) {
-//       effects.get(prevElem)?.delete(eff);
-//       const fx = effects.get(newElem) ?? new Set();
-//       fx.add(eff);
-//       effects.set(newElem, fx);
-//       prevElem.replaceWith(newElem);
-//       const td = prevElem;
-//       queueMicrotask(() => {
-//         teardown(td);
-//       });
-//     }
-//     prevElem = newElem;
-//     prevIndex = currIndex;
-//   });
-
-//   return prevElem;
-// }
-
 export function show(props) {
+  let prevIndex = -1;
+  let prevElem: Element | null = null;
+
+  const eff = $effect(() => {
+    const currIndex = props.findIndex((c) => c.if());
+    if (currIndex === prevIndex) {
+      if (!prevElem) {
+        prevElem = TEXT_NODE_TEMPLATE.cloneNode() as Element;
+      }
+      return;
+    }
+    const newElem = currIndex < 0
+      ? TEXT_NODE_TEMPLATE.cloneNode()
+      : props[currIndex].then();
+    if (prevElem) {
+      const prevFx = effects.get(prevElem);
+      if (prevFx) {
+        effects.set(prevElem, prevFx.filter((f) => f !== eff));
+      }
+      const fx = effects.get(newElem);
+      if (fx) {
+        fx.push(eff);
+      } else {
+        effects.set(newElem, [eff]);
+      }
+      let td = prevElem;
+      queueMicrotask(() => {
+        teardown(td);
+        td.replaceWith(newElem);
+        td = null;
+      });
+    }
+    prevElem = newElem;
+    prevIndex = currIndex;
+  });
+
+  return prevElem;
+}
+
+export function show_old(props) {
   let prevElem: Element | null = null;
   let prevCondition = null;
   const eff = $effect(() => {
