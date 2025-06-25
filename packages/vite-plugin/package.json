@@ -1,6 +1,6 @@
 {
   "name": "@thyn/vite-plugin",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "scripts": {
     "build": "tsc",
     "pub": "tsc && npm version patch -f && npm -f publish --access=public"
