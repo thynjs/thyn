@@ -536,8 +536,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     const eachAttr = attrs.each.raw;
     const [item, iterable] = eachAttr.split(" in ").map((s) => s.trim());
     code = `__THYN__CORE__.component(${hasComponentChildren
-        ? "__THYN__CORE__.list"
-        : "__THYN__CORE__.terminalList"
+      ? "__THYN__CORE__.list"
+      : "__THYN__CORE__.terminalList"
       }, {
       items: () => ${iterable},
       render: (${item}) => ${code},

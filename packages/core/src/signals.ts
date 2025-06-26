@@ -125,10 +125,10 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
 }
 
 function runEffect(effectFn) {
-  if (effectFn.ran) {
+  if (effectFn.deps) {
     cleanup(effectFn);
   } else {
-    effectFn.ran = true;
+    effectFn.deps = new Set();
   }
   const prev = currentEffect;
   currentEffect = effectFn;
@@ -143,15 +143,15 @@ function runEffect(effectFn) {
   currentEffect = prev;
 }
 
+
 export function $effect(fn) {
   const effectFn = {
-    ran: false,
     run: fn,
-    deps: new Set(),
+    deps: null,
     td: null,
   };
   runEffect(effectFn);
-  currentEffects?.push(effectFn);
+  if (currentEffects) currentEffects.push(effectFn);
   return effectFn;
 }
 
