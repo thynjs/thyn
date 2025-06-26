@@ -2,7 +2,7 @@ import { currentEffects } from "./element";
 
 let currentEffect: any;
 
-let isBatching = false;
+let isBatching: boolean | undefined;
 const pendingEffects = [];
 
 function scheduleEffect(effectFn) {
@@ -26,7 +26,7 @@ export type Signal<T> = {
 export function $signal<T>(value: T): Signal<T> {
   const subscribers = new Set<any>();
 
-  const signal: Signal<T> = (...args: [T] | [(prev: T) => T] | []) => {
+  return (...args: [T] | [(prev: T) => T] | []) => {
     if (!args.length) {
       if (currentEffect) {
         subscribers.add(currentEffect);
@@ -47,7 +47,6 @@ export function $signal<T>(value: T): Signal<T> {
       }
     }
   };
-  return signal;
 }
 
 /**
