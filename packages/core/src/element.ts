@@ -5,7 +5,7 @@ export function mount(app, parent) {
 }
 
 export const effects = new Map();
-export let currentEffects: any | null = null;
+export let currentEffects: any | undefined;
 
 export function createReactiveTextNode(v) {
   let n;
@@ -146,7 +146,7 @@ function remove(elem) {
 
 export function show(props) {
   let prevIndex = -1;
-  let prevElem: Element | Comment | null = null;
+  let prevElem: Element | Comment | undefined;
 
   const eff = $effect(() => {
     const currIndex = props.findIndex((c) => !c.if || c.if());

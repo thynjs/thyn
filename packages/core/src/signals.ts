@@ -1,6 +1,6 @@
 import { currentEffects } from "./element";
 
-let currentEffect = null;
+let currentEffect: any;
 
 let isBatching = false;
 const pendingEffects = [];

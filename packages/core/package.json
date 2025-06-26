@@ -1,6 +1,6 @@
 {
   "name": "@thyn/core",
-  "version": "0.0.29",
+  "version": "0.0.31",
   "scripts": {
     "build": "tsc",
     "pub": "tsc && npm version patch -f && npm -f publish --access=public"
