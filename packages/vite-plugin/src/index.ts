@@ -287,7 +287,9 @@ function makeTemplate(
   for (const [key, val] of Object.entries(attrs)) {
     if (["each", "if", "then"].includes(key)) continue;
     if ("quoted" in val) {
-      if (key === "class" || key.includes("-")) {
+      if (key === "class") {
+        template += `${statRoot}.className = "${val.quoted}";\n`;
+      } else if (key.includes("-")) {
         template += `${statRoot}.setAttribute("${key}", "${val.quoted}");\n`;
       } else {
         template += `${statRoot}["${key}"] = "${val.quoted}";\n`;

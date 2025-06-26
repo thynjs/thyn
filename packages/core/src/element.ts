@@ -1,10 +1,10 @@
 import { $effect, cleanup } from "./signals";
 
 export function mount(app, parent) {
-  parent.appendChild(component(app));
+  parent.appendChild(app());
 }
 
-export const effects = new Map();
+const effects = new Map();
 export let currentEffects: any | undefined;
 
 export function createReactiveTextNode(v) {
