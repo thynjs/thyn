@@ -1,67 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>thyn</title>
-  <link rel="icon" type="image/png" href="/thyn.png">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
-  <style>
-	html, body {
-		height: 100%;
-		text-align: center;
-		position: relative;
-		margin: 0;
-		background: #333;
-		color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-	}
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>thyn</title>
+	<link rel="icon" type="image/svg" href="/thyn.svg">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+	<style>
+		html,
+		body {
+			height: 100%;
+			text-align: center;
+			position: relative;
+			margin: 0;
+			background: #333;
+			color: #fff;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
 
-	* {
-		box-sizing: border-box;
-		font-weight: 200;
-	}
+		* {
+			box-sizing: border-box;
+			font-weight: 200;
+		}
 
-	div {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-	}
+		.main {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 100%;
+			max-width: 1200px;
+		}
 
-	h1 {
-		font-size: 48px;
-		letter-spacing: 2px;
-	}
+		h1 {
+			font-size: 48px;
+			letter-spacing: 2px;
+		}
 
-	pre {
-		width: 100%;
-		max-width: calc(100vw - 20px);
-		font-size: 14px !important;
-		margin: 0 !important;
-		padding: 10px 20px !important;
-		border-radius: 10px;
-		margin-bottom: 20px !important;
-	}
+		h4 {
+			margin: 0;
+		}
 
-	a {
-		color: #fff;
-	}
-  </style>
+		.compiled-wrapper {
+			display: flex;
+			gap: 20px;
+		}
+
+		.compiled-wrapper>* {
+			flex-grow: 1;
+			flex-basis: 1px;
+			display: flex;
+			gap: 5px;
+			flex-direction: column;
+		}
+
+		pre {
+			flex-grow: 1;
+			width: 100%;
+			max-width: calc(100vw - 20px);
+			font-size: 14px !important;
+			margin: 0 !important;
+			padding: 10px 20px !important;
+			border-radius: 10px;
+			margin-bottom: 20px !important;
+		}
+
+		code {
+			word-break: break-all !important;
+			white-space: pre-wrap !important;
+		}
+
+		.code {
+			font-size: 12px !important;
+		}
+
+		.compiled {
+			font-size: 11px !important;
+		}
+
+		a {
+			color: #fff;
+		}
+	</style>
 </head>
+
 <body>
-<div>
-	<h1>thyn</h1>
-	<pre><code class="language-html"></code></pre>
-	<a href="https://github.com/thynjs/thyn">source</a>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+	<div class="main">
+		<h1>thyn</h1>
+		<div class="compiled-wrapper">
+			<div>
+				<h4>source</h4>
+				<pre><code class="code language-javascript"></code></pre>
+			</div>
+			<div>
+				<h4>compiled</h4>
+				<pre><code class="compiled language-javascript"></code></pre>
+			</div>
+		</div>
+		<a href="https://github.com/thynjs/thyn">GitHub</a>
+	</div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+	<script>
+		const code = document.querySelector(".code");
+		code.textContent = `// App.thyn
 <script>
-const code = document.querySelector("code");
-code.textContent = `<script>
   const count = $signal(0);
 <\/script>
 
@@ -73,7 +119,16 @@ code.textContent = `<script>
   button {
     background: #333;
   }
-</style>`;
-</script>
+</style>
+
+// main.js
+import { mount } from '@thyn/core';
+import App from './App.thyn';
+
+mount(App, document.body);`;
+		const compiled = document.querySelector(".compiled");
+		compiled.textContent = 'let i=null,l=!1;const r=[];function _(t){r.push(t),l||(l=!0,queueMicrotask(()=>{for(const n of r)p(n);r.length=0,l=!1}))}function h(t){const n=new Set;return(...o)=>{if(!o.length)return i&&(n.add(i),i.deps.add(n)),t;const s=o[0],f=typeof s=="function"?s(t):s;if(f!==t){t=f;for(const a of n)_(a)}}}function p(t){t.ran?m(t):t.ran=!0;const n=i;i=t;const e=t.run();e&&(t.td?t.td.push(e):t.td=[e]),i=n}function g(t){const n={ran:!1,run:t,deps:new Set,td:null};return p(n),c==null||c.push(n),n}function m(t){const{deps:n,td:e}=t;if(n.size){for(const o of n)o.delete(t);n.clear()}if(e){const o=e.length;for(let s=0;s<o;s++)e[s]();t.td=null}}function b(t,n){n.appendChild(N(t))}const d=new Map;let c=null;function N(t,n){const e=c;c=[];const o=t(n),s=d.get(o);return s?s.push(...c):d.set(o,c),c=e,o}let u;function E(){if(!u){u=document.createElement("button"),u.setAttribute("class","thyn-0");const t=document.createTextNode("");return u.appendChild(t),u}return u.cloneNode(!0)}function T(t){const n=h(0),e=E();return e.onclick=()=>n(o=>o+1),g(()=>{e.firstChild.nodeValue=`Count: ${n()}`}),e}b(T,document.body)';
+	</script>
 </body>
+
 </html>

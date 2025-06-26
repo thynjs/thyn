@@ -3,15 +3,15 @@ import { currentEffects } from "./element";
 let currentEffect = null;
 
 let isBatching = false;
-const pendingEffects = new Set<any>();
+const pendingEffects = [];
 
 function scheduleEffect(effectFn) {
-  pendingEffects.add(effectFn);
+  pendingEffects.push(effectFn);
   if (!isBatching) {
     isBatching = true;
     queueMicrotask(() => {
-      for (const ef of pendingEffects) ef.run();
-      pendingEffects.clear();
+      for (const ef of pendingEffects) runEffect(ef);
+      pendingEffects.length = 0;
       isBatching = false;
     });
   }

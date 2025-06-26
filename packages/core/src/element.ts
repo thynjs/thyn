@@ -4,7 +4,6 @@ export function mount(app, parent) {
   parent.appendChild(component(app));
 }
 
-const TEXT_NODE_TEMPLATE = document.createTextNode("");
 export const effects = new Map();
 export let currentEffects: any | null = null;
 
@@ -147,18 +146,18 @@ function remove(elem) {
 
 export function show(props) {
   let prevIndex = -1;
-  let prevElem: Element | null = null;
+  let prevElem: Element | Comment | null = null;
 
   const eff = $effect(() => {
     const currIndex = props.findIndex((c) => !c.if || c.if());
     if (currIndex === prevIndex) {
       if (!prevElem) {
-        prevElem = TEXT_NODE_TEMPLATE.cloneNode() as Element;
+        prevElem = document.createComment("");
       }
       return;
     }
     const newElem = currIndex < 0
-      ? TEXT_NODE_TEMPLATE.cloneNode()
+      ? document.createComment("")
       : props[currIndex].then();
     if (prevElem) {
       const prevFx = effects.get(prevElem);
@@ -191,7 +190,6 @@ const replaceWith = (nextItem, prevElement, render) => {
 };
 
 const fragments = new Map();
-const COMMENT_NODE_TEMPLATE = document.createComment("");
 
 export function terminalList(props) {
   return list(props, true);
@@ -200,8 +198,8 @@ export function terminalList(props) {
 export function list(props, terminal = false) {
   let prevItems;
   let outlet = document.createDocumentFragment();
-  const startBookend = COMMENT_NODE_TEMPLATE.cloneNode() as ChildNode;
-  const endBookend = COMMENT_NODE_TEMPLATE.cloneNode() as ChildNode;
+  const startBookend = document.createComment("") as ChildNode;
+  const endBookend = document.createComment("") as ChildNode;
   const render = props.render;
   const keyMap = new Map();
   let isolated = false;

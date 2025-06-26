@@ -114,9 +114,8 @@ function parseTextContent(text: string) {
       ecmaVersion: 2022,
     });
     if (ast.type === "CallExpression" && !ast.arguments.length) {
-      code = `__THYN__CORE__.createReactiveTextNode(${
-        interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
-      })`;
+      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
+        })`;
     }
     return {
       code,
@@ -449,9 +448,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   let hasReactive = hasReactiveChildren || hasComponentChildren;
   if (tag === "slot") {
     return {
-      code: `...$props.slot ?? ${
-        children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"
-      }`,
+      code: `...$props.slot ?? ${children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"
+        }`,
       isComponent: false,
       hasReactive,
     };
@@ -477,15 +475,13 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
       if ("quoted" in val) {
         if (key === "class" || key.includes("-")) {
           code = createHoisting(
-            `__THYN__CORE__.setAttribute(${
-              cloneIfNeeded(code)
+            `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
             }, "${key}", "${val.quoted}")`,
             hoist,
           );
         } else {
           code = createHoisting(
-            `__THYN__CORE__.setProperty(${
-              cloneIfNeeded(code)
+            `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
             }, "${key}", "${val.quoted}")`,
             hoist,
           );
@@ -496,9 +492,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
       if (["each", "if", "then"].includes(key)) continue;
       if (!("raw" in val)) continue;
       if (key.startsWith("on")) {
-        code = `__THYN__CORE__.setProperty(${
-          cloneIfNeeded(code)
-        }, "${key}", ${val.raw})`;
+        code = `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
         continue;
       }
       const reactive = isReactiveExpression(val.raw.replace(/^\(\) => /, ""));
@@ -506,36 +501,31 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         hasOwnEffects = true;
         hasReactive = true;
         if (key === "class" || key.includes("-")) {
-          code = `__THYN__CORE__.setReactiveAttribute(${
-            cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveAttribute(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
         } else {
-          code = `__THYN__CORE__.setReactiveProperty(${
-            cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveProperty(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
         }
         continue;
       }
       if (key === "class" || key.includes("-")) {
         code = createHoisting(
-          `__THYN__CORE__.setAttribute(${
-            cloneIfNeeded(code)
+          `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
           }, "${key}", ${val.raw})`,
           hoist,
         );
       } else {
         code = createHoisting(
-          `__THYN__CORE__.setProperty(${
-            cloneIfNeeded(code)
+          `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
           }, "${key}", ${val.raw})`,
           hoist,
         );
       }
     }
     if (children.length) {
-      code = `__THYN__CORE__.addChildren(${cloneIfNeeded(code)}, [${
-        children.map((c) => cloneIfNeeded(c.code)).join(", ")
-      }])`;
+      code = `__THYN__CORE__.addChildren(${cloneIfNeeded(code)}, [${children.map((c) => cloneIfNeeded(c.code)).join(", ")
+        }])`;
     }
     if (!hasOwnEffects && hasReactiveChildren) {
       code = `__THYN__CORE__.markAsReactive(${cloneIfNeeded(code)})`;
@@ -545,11 +535,10 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   if ("each" in attrs && "raw" in attrs.each) {
     const eachAttr = attrs.each.raw;
     const [item, iterable] = eachAttr.split(" in ").map((s) => s.trim());
-    code = `__THYN__CORE__.component(${
-      hasComponentChildren
+    code = `__THYN__CORE__.component(${hasComponentChildren
         ? "__THYN__CORE__.list"
         : "__THYN__CORE__.terminalList"
-    }, {
+      }, {
       items: () => ${iterable},
       render: (${item}) => ${code},
     })`;
@@ -573,9 +562,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         branches.push(`{ then: () => ${ch.code} }`);
       }
     }
-    code = `__THYN__CORE__.component(__THYN__CORE__.show, [\n${
-      branches.join(",\n")
-    }\n])`;
+    code = `__THYN__CORE__.component(__THYN__CORE__.show, [\n${branches.join(",\n")
+      }\n])`;
     return {
       code,
       isComponent: true,
@@ -660,12 +648,10 @@ function addComponentAttributes(html: string): string {
             return isClosing
               ? `</${childTag}>`
               : selfClose
-              ? `<${childTag}${
-                attributes || ""
-              } __thyn_component="${componentName}"/>`
-              : `<${childTag}${
-                attributes || ""
-              } __thyn_component="${componentName}">`;
+                ? `<${childTag}${attributes || ""
+                } __thyn_component="${componentName}"/>`
+                : `<${childTag}${attributes || ""
+                } __thyn_component="${componentName}">`;
           },
         );
         return `<${parentTag}${attributes}>${processedContent}</${parentTag}>`;
@@ -680,8 +666,8 @@ function addComponentAttributes(html: string): string {
       return isClosing
         ? "</div>"
         : selfClose
-        ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
-        : `<div${attributes || ""} __thyn_component="${componentName}">`;
+          ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
+          : `<div${attributes || ""} __thyn_component="${componentName}">`;
     },
   );
 
@@ -855,7 +841,7 @@ async function compileThynScript(source, id) {
   };
 }
 
-let styleId = 1e6;
+let styleId = 0;
 
 export default function thyn() {
   const collectedCSS = [];
