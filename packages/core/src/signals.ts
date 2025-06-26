@@ -164,9 +164,8 @@ export function cleanup(effectFn) {
   }
 
   if (td) {
-    const len = td.length;
-    for (let i = 0; i < len; i++) {
-      td[i]();
+    for (const f of td) {
+      f();
     }
     effectFn.td = null;
   }
