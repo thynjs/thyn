@@ -253,6 +253,16 @@ export function list(props, terminal = false) {
 
     const childNodes = Array.from(parent.childNodes);
     const offset = childNodes.indexOf(startBookend) + 1;
+    if (start < 0) {
+      for (let i = nextItems.length; i < oldLength; i++) {
+        const e = childNodes[offset + --oldLength];
+        teardown(e);
+        remove(e);
+      }
+      prevItems = nextItems;
+      return;
+    }
+
     if (start >= newLength) {
       while (start < oldLength) {
         const e = childNodes[offset + --oldLength];

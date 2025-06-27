@@ -1,0 +1,7 @@
+<script>
+  const count = $signal(0);
+</script>
+
+<button :onclick="() => count(c => c + 1)">
+  Count: {{ count() }}
+</button>

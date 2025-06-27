@@ -915,5 +915,5 @@ export default function thyn() {
         source: result.code,
       });
     },
-  };
+  } as const;
 }

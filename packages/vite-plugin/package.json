@@ -1,6 +1,6 @@
 {
   "name": "@thyn/vite-plugin",
-  "version": "0.0.39",
+  "version": "0.0.41",
   "scripts": {
     "build": "tsc",
     "pub": "tsc && npm version patch -f && npm -f publish --access=public"
@@ -23,6 +23,7 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "@types/jsdom": "^21.1.7"
+    "@types/jsdom": "^21.1.7",
+    "vite": "^7.0.0"
   }
 }

@@ -1,0 +1,14 @@
+import thyn from "../vite-plugin/src/index.ts";
+import { defineConfig } from "vite";
+import { configDefaults } from 'vitest/config';
+
+export default defineConfig({
+  plugins: [thyn()],
+  // test: {
+  //   environment: 'jsdom',
+  //   globals: true,
+  //   // include: ['test/**/*.test.ts'],
+  //   // exclude: [...configDefaults.exclude],
+  // },
+});
+
