@@ -3,7 +3,7 @@ import * as acornwalk from "acorn-walk";
 import * as esbuild from "esbuild";
 import { JSDOM } from "jsdom";
 import MagicString from "magic-string";
-import { extractParts, splitScript } from "./utils.js";
+import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 
 function isReactiveExpression(expr) {
   const ast = acorn.parseExpressionAt(expr, 0, { ecmaVersion: 2022 });
@@ -26,7 +26,6 @@ function parseAttributes(el) {
     name = name.replace(
       /__thyn_attribute_(:?[a-z-]+)/g,
       (match, kebabName) => {
-        // Convert kebab-case back to camelCase
         const camelCase = kebabName.replace(
           /-([a-z])/g,
           (_, letter) => letter.toUpperCase(),
@@ -99,11 +98,11 @@ function parseTextContent(text: string) {
     parts.push(text.slice(lastIndex));
   }
   if (!hasInterpolations) {
-    return { code: `document.createTextNode(\`${text}\`)`, hasReactive: false }; // plain text
+    return { code: `document.createTextNode(\`${escapeTemplateLiteral(text)}\`)`, hasReactive: false };
   }
   const interpolated = parts.map((part) => {
     if (typeof part === "string") {
-      return part.replace(/[`\\$]/g, "\\$&"); // escape backticks and ${
+      return escapeTemplateLiteral(part);
     }
     return `$\{${part.expr}\}`;
   }).join("");
@@ -114,8 +113,7 @@ function parseTextContent(text: string) {
       ecmaVersion: 2022,
     });
     if (ast.type === "CallExpression" && !ast.arguments.length) {
-      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
-        })`;
+      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")})`;
     }
     return {
       code,
@@ -164,15 +162,15 @@ function generateTextContentTemplate(
   const root = makeVariable();
   if (!hasInterpolations) {
     return {
-      static: `const ${root} = document.createTextNode(\`${text}\`);\n`,
+      static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(text)}\`);\n`,
       dynamic: "",
       root: "",
       staticRoot: root,
-    }; // plain text
+    };
   }
   const interpolated = parts.map((part) => {
     if (typeof part === "string") {
-      return part.replace(/[`\\$]/g, "\\$&"); // escape backticks and ${
+      return escapeTemplateLiteral(part);
     }
     return `$\{${part.expr}\}`;
   }).join("");
@@ -262,7 +260,7 @@ function makeTemplate(
   let statRoot = makeVariable();
   let template = `const ${statRoot} = document.createElement("${tag}");\n`;
   if (!parent) {
-    statRoot = "__THYN__template"; //makeVariable();
+    statRoot = "__THYN__template";
     template = `${statRoot} = document.createElement("${tag}");\n`;
   }
   let code = "";
@@ -389,17 +387,13 @@ function walkConditionChain(nodes: Node[], i: number) {
   for (; i < nodes.length; i++) {
     const node = nodes[i];
     if (node.nodeType !== 1) continue;
-
     const el = node as Element;
     const attrs = parseAttributes(el);
-
     if ("if" in attrs || "else-if" in attrs || "else" in attrs) {
       chain.push({ node, attrs });
     } else {
       break;
     }
-
-    // Stop after :else since nothing can follow it
     if ("else" in attrs) break;
   }
   return chain;
@@ -827,7 +821,6 @@ async function compileThynScript(source, id) {
     hires: true,
   });
 
-  // Transform TypeScript if it's a .ts file
   if (id.endsWith(".thyn.ts")) {
     const tsResult = await transformTypeScript(output, id);
     output = tsResult.code;

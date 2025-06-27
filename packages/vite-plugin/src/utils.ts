@@ -22,6 +22,17 @@ export function extractParts(code: string) {
   };
 };
 
+// export function escapeSpecialChars(input: string): string {
+//   return input.replace(/[`\\$]/g, "\\$&");
+// }
+
+export function escapeTemplateLiteral(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')     // Escape backslashes
+    .replace(/`/g, '\\`')       // Escape backticks
+    .replace(/\$\{/g, '\\${');  // Escape interpolation
+}
+
 export function splitScript(script: string) {
   if (!script || typeof script !== "string") {
     return { imports: [], body: [] };
