@@ -156,9 +156,7 @@ export function show(props) {
       }
       return;
     }
-    const newElem = currIndex < 0
-      ? document.createComment("")
-      : props[currIndex].then();
+    const newElem = currIndex < 0 ? document.createComment("") : props[currIndex].then();
     if (prevElem) {
       const prevFx = effects.get(prevElem);
       if (prevFx) {
