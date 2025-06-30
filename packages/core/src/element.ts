@@ -1,4 +1,4 @@
-import { $effect, cleanup } from "./signals";
+import { $effect, cleanup } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());

@@ -1,4 +1,4 @@
-import { currentEffects } from "./element";
+import { currentEffects } from "./element.js";
 
 let currentEffect: any;
 

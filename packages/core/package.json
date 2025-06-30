@@ -1,6 +1,6 @@
 {
   "name": "@thyn/core",
-  "version": "0.0.41",
+  "version": "0.0.43",
   "scripts": {
     "build": "tsc",
     "pub": "tsc && npm version patch -f && npm -f publish --access=public",
@@ -24,5 +24,8 @@
     "typescript": "^5.8.3",
     "vite": "^7.0.0",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@thyn/vite-plugin": "^0.0.41"
   }
 }

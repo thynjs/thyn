@@ -3,10 +3,7 @@ name: Test
 on:
   push:
     branches:
-      - main
-    paths:
-      - 'packages/core/**'
-      - '.github/workflows/**'
+      - '*'
 
 jobs:
   build:
@@ -25,10 +22,18 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
+      - name: Install core dependencies
         working-directory: packages/core
         run: npm install
 
-      - name: Run tests
+      - name: Run core tests
         working-directory: packages/core
+        run: npm test
+
+      - name: Install vite-plugin dependencies
+        working-directory: packages/vite-plugin
+        run: npm install
+
+      - name: Run vite-plugin tests
+        working-directory: packages/vite-plugin
         run: npm test

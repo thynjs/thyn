@@ -10,15 +10,9 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "outDir": "dist",
-    "rootDir": ".",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ]
+    "rootDir": "src"
   },
   "include": [
-    "src/**/*",
-    "tests/**/*",
-    "types/**/*.d.ts"
+    "src/**/*"
   ]
 }

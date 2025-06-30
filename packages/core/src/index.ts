@@ -12,5 +12,5 @@ export {
   setReactiveProperty,
   show,
   terminalList,
-} from "./element";
-export { $compare, $effect, $signal, type Signal } from "./signals";
+} from "./element.js";
+export { $compare, $effect, $signal, type Signal } from "./signals.js";
