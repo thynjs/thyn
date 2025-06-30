@@ -1,0 +1,8 @@
+<script>
+  const show = $signal(true);
+</script>
+
+<div @click={() => show(c => !c)}>
+  <p #if={show()}>foo</p>
+  <p #else>bar</p>
+</div>
