@@ -3,7 +3,7 @@
 </script>
 
 <div @click={()=> items(v => [...v, v.length])}>
-  <p #for={item of items()}>
+  <p #for={item in items()}>
     {{ item }}
   </p>
 </div>

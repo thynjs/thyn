@@ -539,7 +539,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
 
   if ("#for" in attrs && "raw" in attrs["#for"]) {
     const forAttr = attrs["#for"].raw;
-    const [item, iterable] = forAttr.split(" of ").map((s) => s.trim());
+    const [item, iterable] = forAttr.split(" in ").map((s) => s.trim());
     code = `__THYN__CORE__.component(${hasComponentChildren
       ? "__THYN__CORE__.list"
       : "__THYN__CORE__.terminalList"
