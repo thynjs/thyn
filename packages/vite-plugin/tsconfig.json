@@ -18,7 +18,7 @@
   },
   "include": [
     "src/**/*",
-    "tests/**/*.thyn",
+    "tests/**/*",
     "types/**/*.d.ts"
   ]
 }
