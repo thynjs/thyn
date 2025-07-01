@@ -2,8 +2,8 @@
   const items = $signal([0, 1, 2]);
 </script>
 
-<div @click={() => items(v => [...v, v.length])}>
-  <p #each={item in items()}>
+<div @click={()=> items(v => [...v, v.length])}>
+  <p #for={item of items()}>
     {{ item }}
   </p>
 </div>

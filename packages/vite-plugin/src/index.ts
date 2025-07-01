@@ -5,7 +5,7 @@ import { JSDOM } from "jsdom";
 import MagicString from "magic-string";
 import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 
-const DIRECTIVES = ["#each", "#if", "#then", "#else", "#else-if"];
+const DIRECTIVES = ["#for", "#if", "#then", "#else", "#else-if"];
 
 function isReactiveExpression(expr) {
   const ast = acorn.parseExpressionAt(expr, 0, { ecmaVersion: 2022 });
@@ -61,7 +61,7 @@ function parseAttributes(el) {
       }
       const reactive = value && isReactiveExpression(value);
       if (
-        reactive && name !== ":#each" && name !== ":#if" &&
+        reactive && name !== ":#for" && name !== ":#if" &&
         name !== ":#else-if" && name !== ":#else"
       ) {
         value = `() => ${value}`;
@@ -118,9 +118,8 @@ function parseTextContent(text: string) {
       ecmaVersion: 2022,
     });
     if (ast.type === "CallExpression" && !ast.arguments.length) {
-      code = `__THYN__CORE__.createReactiveTextNode(${
-        interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
-      })`;
+      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
+        })`;
     }
     return {
       code,
@@ -169,9 +168,8 @@ function generateTextContentTemplate(
   const root = makeVariable();
   if (!hasInterpolations) {
     return {
-      static: `const ${root} = document.createTextNode(\`${
-        escapeTemplateLiteral(text)
-      }\`);\n`,
+      static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(text)
+        }\`);\n`,
       dynamic: "",
       root: "",
       staticRoot: root,
@@ -453,9 +451,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   let hasReactive = hasReactiveChildren || hasComponentChildren;
   if (tag === "slot") {
     return {
-      code: `...$props.slot ?? ${
-        children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"
-      }`,
+      code: `...$props.slot ?? ${children.map((c) => cloneIfNeeded(c.code)).join(", ") || "[]"
+        }`,
       isComponent: false,
       hasReactive,
     };
@@ -466,7 +463,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   if (isComponent) {
     const props: any = {};
     for (const [key, val] of Object.entries(attrs)) {
-      if (["#each", "#if", "#then", "#else", "#else-if"].includes(key)) {
+      if (["#for", "#if", "#then", "#else", "#else-if"].includes(key)) {
         continue;
       }
       const value = "raw" in val ? val.raw : JSON.stringify(val.quoted);
@@ -483,15 +480,13 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
       if ("quoted" in val) {
         if (key === "class" || key.includes("-")) {
           code = createHoisting(
-            `__THYN__CORE__.setAttribute(${
-              cloneIfNeeded(code)
+            `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
             }, "${key}", "${val.quoted}")`,
             hoist,
           );
         } else {
           code = createHoisting(
-            `__THYN__CORE__.setProperty(${
-              cloneIfNeeded(code)
+            `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
             }, "${key}", "${val.quoted}")`,
             hoist,
           );
@@ -502,9 +497,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
       if (DIRECTIVES.includes(key)) continue;
       if (!("raw" in val)) continue;
       if (key.startsWith("on")) {
-        code = `__THYN__CORE__.setProperty(${
-          cloneIfNeeded(code)
-        }, "${key}", ${val.raw})`;
+        code = `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
         continue;
       }
       const reactive = isReactiveExpression(val.raw.replace(/^\(\) => /, ""));
@@ -512,50 +506,44 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         hasOwnEffects = true;
         hasReactive = true;
         if (key === "class" || key.includes("-")) {
-          code = `__THYN__CORE__.setReactiveAttribute(${
-            cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveAttribute(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
         } else {
-          code = `__THYN__CORE__.setReactiveProperty(${
-            cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`;
+          code = `__THYN__CORE__.setReactiveProperty(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
         }
         continue;
       }
       if (key === "class" || key.includes("-")) {
         code = createHoisting(
-          `__THYN__CORE__.setAttribute(${
-            cloneIfNeeded(code)
+          `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
           }, "${key}", ${val.raw})`,
           hoist,
         );
       } else {
         code = createHoisting(
-          `__THYN__CORE__.setProperty(${
-            cloneIfNeeded(code)
+          `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
           }, "${key}", ${val.raw})`,
           hoist,
         );
       }
     }
     if (children.length) {
-      code = `__THYN__CORE__.addChildren(${cloneIfNeeded(code)}, [${
-        children.map((c) => cloneIfNeeded(c.code)).join(", ")
-      }])`;
+      code = `__THYN__CORE__.addChildren(${cloneIfNeeded(code)}, [${children.map((c) => cloneIfNeeded(c.code)).join(", ")
+        }])`;
     }
     if (!hasOwnEffects && hasReactiveChildren) {
       code = `__THYN__CORE__.markAsReactive(${cloneIfNeeded(code)})`;
     }
   }
 
-  if ("#each" in attrs && "raw" in attrs["#each"]) {
-    const eachAttr = attrs["#each"].raw;
-    const [item, iterable] = eachAttr.split(" in ").map((s) => s.trim());
-    code = `__THYN__CORE__.component(${
-      hasComponentChildren
-        ? "__THYN__CORE__.list"
-        : "__THYN__CORE__.terminalList"
-    }, {
+  if ("#for" in attrs && "raw" in attrs["#for"]) {
+    const forAttr = attrs["#for"].raw;
+    const [item, iterable] = forAttr.split(" of ").map((s) => s.trim());
+    code = `__THYN__CORE__.component(${hasComponentChildren
+      ? "__THYN__CORE__.list"
+      : "__THYN__CORE__.terminalList"
+      }, {
       items: () => ${iterable},
       render: (${item}) => ${code},
     })`;
@@ -579,9 +567,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         branches.push(`{ then: () => ${ch.code} }`);
       }
     }
-    code = `__THYN__CORE__.component(__THYN__CORE__.show, [\n${
-      branches.join(",\n")
-    }\n])`;
+    code = `__THYN__CORE__.component(__THYN__CORE__.show, [\n${branches.join(",\n")
+      }\n])`;
     return {
       code,
       isComponent: true,
@@ -607,7 +594,7 @@ function hasComponentChildren(node: Element): boolean {
   let isComponent = node.hasAttribute("__thyn_component");
   if (isComponent) return true;
   for (const attr of node.attributes) {
-    if ([":#each", ":#if", ":#else", ":#else-if"].includes(attr.name)) {
+    if ([":#for", ":#if", ":#else", ":#else-if"].includes(attr.name)) {
       return true;
     }
   }
@@ -724,12 +711,10 @@ function addComponentAttributes(html: string): string {
             return isClosing
               ? `</${childTag}>`
               : selfClose
-              ? `<${childTag}${
-                attributes || ""
-              } __thyn_component="${componentName}"/>`
-              : `<${childTag}${
-                attributes || ""
-              } __thyn_component="${componentName}">`;
+                ? `<${childTag}${attributes || ""
+                } __thyn_component="${componentName}"/>`
+                : `<${childTag}${attributes || ""
+                } __thyn_component="${componentName}">`;
           },
         );
         return `<${parentTag}${attributes}>${processedContent}</${parentTag}>`;
@@ -744,8 +729,8 @@ function addComponentAttributes(html: string): string {
       return isClosing
         ? "</div>"
         : selfClose
-        ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
-        : `<div${attributes || ""} __thyn_component="${componentName}">`;
+          ? `<div${attributes || ""} __thyn_component="${componentName}"></div>`
+          : `<div${attributes || ""} __thyn_component="${componentName}">`;
     },
   );
 
