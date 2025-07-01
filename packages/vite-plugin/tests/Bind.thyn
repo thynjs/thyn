@@ -1,0 +1,6 @@
+<script>
+  const foo = $signal("bar");
+  const isSelected = $compare(foo);
+</script>
+
+<div class={isSelected('foo') ? 'danger' : 'bar'}>

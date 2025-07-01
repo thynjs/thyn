@@ -628,20 +628,58 @@ const forcedChildren = new Map([
 const COMPONENT_TAG_REGEX =
   /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
-function convertToColonBindings(html: string): string {
-  return html.replace(
-    /(<[^>]*?)(\s)([#a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
+function convertToColonBindings(html) {
+  // First handle # directives
+  html = html.replace(
+    /(<[^>]*?)(\s)#([a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
+    (_, tagStart, space, key, value) =>
+      `${tagStart}${space}:#${key}="${value.trim()}"`,
+  );
+
+  // Then handle regular attribute bindings
+  html = html.replace(
+    /(<[^>]*?)(\s)([a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
     (_, tagStart, space, key, value) =>
       `${tagStart}${space}:${key}="${value.trim()}"`,
   );
+
+  return html;
 }
 
-function convertEventHandlerAttributes(html: string): string {
-  return html.replace(
-    /(<[^>]*?)(\s)@([a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
-    (_, tagStart, space, eventName, handler) =>
-      `${tagStart}${space}on${eventName}={${handler.trim()}}`,
-  );
+function convertEventHandlerAttributes(html) {
+  let result = html;
+  let match;
+  const regex = /(<[^>]*?)(\s)@([a-zA-Z_][\w\-]*)=\{/g;
+
+  while ((match = regex.exec(html)) !== null) {
+    const [fullMatch, tagStart, space, eventName] = match;
+    const startIndex = match.index + fullMatch.length;
+
+    // Find the matching closing brace
+    let braceCount = 1;
+    let endIndex = startIndex;
+
+    while (endIndex < html.length && braceCount > 0) {
+      if (html[endIndex] === "{") braceCount++;
+      else if (html[endIndex] === "}") braceCount--;
+      endIndex++;
+    }
+
+    const handler = html.slice(startIndex, endIndex - 1);
+    const originalText = html.slice(match.index, endIndex);
+    const replacement =
+      `${tagStart}${space}:on${eventName}="${handler.trim()}"`;
+
+    result = result.replace(originalText, replacement);
+    break; // Process one at a time to avoid index issues
+  }
+
+  // If we made a replacement, recursively process the result
+  if (result !== html) {
+    return convertEventHandlerAttributes(result);
+  }
+
+  return result;
 }
 
 function preprocessHTML(html: string): string {
