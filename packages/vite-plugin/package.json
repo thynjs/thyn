@@ -1,6 +1,6 @@
 {
   "name": "@thyn/vite-plugin",
-  "version": "0.0.47",
+  "version": "0.0.50",
   "scripts": {
     "build": "tsc",
     "pub": "tsc && npm version patch -f && npm -f publish --access=public",
@@ -21,6 +21,8 @@
     "esbuild": "^0.25.5",
     "jsdom": "^26.1.0",
     "magic-string": "^0.30.17",
+    "postcss": "^8.5.6",
+    "postcss-selector-parser": "^7.1.0",
     "typescript": "^5.8.3"
   },
   "devDependencies": {

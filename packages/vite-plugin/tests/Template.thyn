@@ -1,0 +1,8 @@
+<script>
+  const foo = $signal(0);
+</script>
+
+<div>
+  <h1>foo</h1>
+  <p>{{ foo() }}</p>
+</div>

@@ -4,6 +4,29 @@ import * as esbuild from "esbuild";
 import { JSDOM } from "jsdom";
 import MagicString from "magic-string";
 import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
+import postcss from 'postcss';
+import selectorParser from 'postcss-selector-parser';
+
+async function scopeSelectors(css: string, scopeId: string) {
+  const result = await postcss([
+    {
+      postcssPlugin: 'postcss-scope-thyn',
+      Rule(rule) {
+        if (!rule.selector) return;
+
+        const processor = selectorParser((selectors) => {
+          selectors.walkClasses(() => { }); // just to trigger full parse
+          selectors.each((sel) => {
+            sel.append(selectorParser.className({ value: scopeId }));
+          });
+        });
+
+        rule.selector = processor.processSync(rule.selector);
+      },
+    },
+  ]).process(css, { from: undefined });
+  return result.css;
+}
 
 const DIRECTIVES = ["#for", "#if", "#then", "#else", "#else-if"];
 
@@ -78,17 +101,33 @@ function parseAttributes(el) {
 
 function parseTextContent(text: string) {
   text = text.trim();
+
+  // First, handle escaped braces by temporarily replacing them
+  const escapedOpenBrace = '\u0001'; // Use control character as placeholder
+  const escapedCloseBrace = '\u0002';
+
+  // Replace escaped braces with placeholders
+  text = text.replace(/\\(\{\{|\}\})/g, (match, braces) => {
+    return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
+  });
+
   const regex = /\{\{([^}]+)\}\}/g;
   let lastIndex = 0;
   let match;
   const parts = [];
   let hasReactive = false;
   let hasInterpolations = false;
+
   while ((match = regex.exec(text)) !== null) {
     const staticText = text.slice(lastIndex, match.index);
     if (staticText) {
-      parts.push(staticText);
+      // Restore escaped braces in static text
+      const restoredText = staticText
+        .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+        .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+      parts.push(restoredText);
     }
+
     const expr = match[1].trim();
     const isReactive = isReactiveExpression(expr);
     hasReactive || (hasReactive = isReactive);
@@ -96,42 +135,54 @@ function parseTextContent(text: string) {
     parts.push({ expr, isReactive });
     lastIndex = regex.lastIndex;
   }
+
   if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    // Restore escaped braces in remaining text
+    const remainingText = text.slice(lastIndex)
+      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+    parts.push(remainingText);
   }
+
   if (!hasInterpolations) {
+    // Restore escaped braces if no interpolations
+    const finalText = text
+      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
     return {
-      code: `document.createTextNode(\`${escapeTemplateLiteral(text)}\`)`,
+      code: `document.createTextNode(\`${escapeTemplateLiteral(finalText)}\`)`,
       hasReactive: false,
     };
   }
+
   const interpolated = parts.map((part) => {
     if (typeof part === "string") {
       return escapeTemplateLiteral(part);
     }
     return `$\{${part.expr}\}`;
   }).join("");
+
   if (hasReactive) {
-    let code =
-      `__THYN__CORE__.createReactiveTextNode(() => \`${interpolated}\`)`;
+    let code = `__THYN__CORE__.createReactiveTextNode(() => \`${interpolated}\`)`;
     const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
       ecmaVersion: 2022,
     });
     if (ast.type === "CallExpression" && !ast.arguments.length) {
-      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")
-        })`;
+      code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")})`;
     }
     return {
       code,
       hasReactive,
     };
   }
+
   if (parts.length === 1) {
     return {
       code: `document.createTextNode(${interpolated.slice(2, -1)})`,
       hasReactive,
     };
   }
+
   return {
     code: `document.createTextNode(\`${interpolated}\`)`,
     hasReactive,
@@ -144,17 +195,33 @@ function generateTextContentTemplate(
   prevSibling?: string,
 ): { root: string; static: string; dynamic: string; staticRoot: string } {
   text = text.trim();
+
+  // First, handle escaped braces by temporarily replacing them
+  const escapedOpenBrace = '\u0001'; // Use control character as placeholder
+  const escapedCloseBrace = '\u0002';
+
+  // Replace escaped braces with placeholders
+  text = text.replace(/\\(\{\{|\}\})/g, (match, braces) => {
+    return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
+  });
+
   const regex = /\{\{([^}]+)\}\}/g;
   let lastIndex = 0;
   let match;
   const parts = [];
   let hasReactive = false;
   let hasInterpolations = false;
+
   while ((match = regex.exec(text)) !== null) {
     const staticText = text.slice(lastIndex, match.index);
     if (staticText) {
-      parts.push(staticText);
+      // Restore escaped braces in static text
+      const restoredText = staticText
+        .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+        .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+      parts.push(restoredText);
     }
+
     const expr = match[1].trim();
     const isReactive = isReactiveExpression(expr);
     hasReactive || (hasReactive = isReactive);
@@ -162,28 +229,41 @@ function generateTextContentTemplate(
     parts.push({ expr, isReactive });
     lastIndex = regex.lastIndex;
   }
+
   if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    // Restore escaped braces in remaining text
+    const remainingText = text.slice(lastIndex)
+      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+    parts.push(remainingText);
   }
+
   const root = makeVariable();
+
   if (!hasInterpolations) {
+    // Restore escaped braces if no interpolations
+    const finalText = text
+      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
     return {
-      static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(text)
-        }\`);\n`,
+      static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(finalText)}\`);\n`,
       dynamic: "",
       root: "",
       staticRoot: root,
     };
   }
+
   const interpolated = parts.map((part) => {
     if (typeof part === "string") {
       return escapeTemplateLiteral(part);
     }
     return `$\{${part.expr}\}`;
   }).join("");
+
   const textNode = prevSibling
     ? `${prevSibling}.nextSibling`
     : `${parent}.firstChild`;
+
   if (hasReactive) {
     let fn = `(() => \`${interpolated}\`)`;
     const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
@@ -203,6 +283,7 @@ function generateTextContentTemplate(
       staticRoot: root,
     };
   }
+
   if (parts.length === 1) {
     return {
       dynamic: `${textNode}.nodeValue = ${interpolated.slice(2, -1)};\n`,
@@ -211,6 +292,7 @@ function generateTextContentTemplate(
       staticRoot: root,
     };
   }
+
   return {
     dynamic: `${textNode}.nodeValue = \`${interpolated}\`;\n`,
     static: `const ${root} = document.createTextNode("");\n`,
@@ -375,12 +457,6 @@ function makeTemplate(
       }
     }
   }
-
-  const lineCount = code.split("\n").length;
-  if (parent && lineCount === 2) {
-    code = "";
-  }
-
   return {
     root: dynRoot,
     staticRoot: statRoot,
@@ -744,7 +820,7 @@ function addScopeId(el, scopeId) {
   }
 }
 
-function transformHTMLtoJSX(html: string, style: string) {
+async function transformHTMLtoJSX(html: string, style: string) {
   const scopeId = `thyn-${(styleId++).toString(36)}`;
   const div = new JSDOM("").window.document.createElement("div");
   const processedHTML = preprocessHTML(html);
@@ -756,19 +832,7 @@ function transformHTMLtoJSX(html: string, style: string) {
   let scopedStyle = null;
   if (style) {
     addScopeId(rootElement, scopeId);
-    scopedStyle = style.replace(
-      /(^|\})\s*([^{\}]+)\s*\{/g,
-      (_, sep, selector) => {
-        const scoped = selector
-          .split(",")
-          .map((s: string) => {
-            const trimmed = s.trim();
-            return `${trimmed}.${scopeId}`;
-          })
-          .join(", ");
-        return `${sep} ${scoped} {`;
-      },
-    );
+    scopedStyle = await scopeSelectors(style, scopeId);
   }
 
   if (hasComponentChildren(rootElement)) {
@@ -810,7 +874,7 @@ async function transformTypeScript(code: string, id: string) {
   }
 }
 
-export function transformSFC(source: string, id: string) {
+export async function transformSFC(source: string, id: string) {
   const name = id.split("/").pop()?.replace(/\.thyn$/, "");
   const { script, scriptLang, html, style } = extractParts(source);
   const { imports, body } = splitScript(script);
@@ -828,7 +892,7 @@ export function transformSFC(source: string, id: string) {
   s.prepend("import * as __THYN__CORE__ from '@thyn/core';\n");
   s.append(imports.join("\n") + "\n");
 
-  let [root, transformed, hoist, scopedStyle] = transformHTMLtoJSX(html, style);
+  let [root, transformed, hoist, scopedStyle] = await transformHTMLtoJSX(html, style);
   s.append(hoist.join("\n") + "\n");
 
   s.append([
@@ -849,7 +913,7 @@ export function transformSFC(source: string, id: string) {
 }
 
 export async function compileSFC(source: string, id: string) {
-  let { scriptLang, output, sourceMap, scopedStyle } = transformSFC(source, id);
+  let { scriptLang, output, sourceMap, scopedStyle } = await transformSFC(source, id);
 
   if (scriptLang === "ts" || scriptLang === "typescript") {
     const tsResult = await transformTypeScript(output, id);

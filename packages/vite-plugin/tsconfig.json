@@ -18,7 +18,6 @@
   },
   "include": [
     "src/**/*",
-    "tests/**/*",
     "types/**/*.d.ts"
   ]
 }

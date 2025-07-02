@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import Counter from "./Counter.thyn";
-// import { wait } from "./utils.js";
 
 describe("Counter component", () => {
   it("increments on click", async () => {
