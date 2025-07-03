@@ -1,0 +1,3 @@
+<button onclick={$props.onclick}>
+  <slot />
+</button>

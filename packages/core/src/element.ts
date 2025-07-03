@@ -4,7 +4,7 @@ export function mount(app, parent) {
   parent.appendChild(app());
 }
 
-const effects = new Map();
+const effects = new Map<Node, any[]>();
 export let currentEffects: any | undefined;
 
 export function createReactiveTextNode(v) {
@@ -25,6 +25,11 @@ export function component(name, props?: any) {
   const e = name(props);
   const existing = effects.get(e);
   if (existing) {
+    if (existing.some(f => f.show)) {
+      for (const f of currentEffects) {
+        f.show = true;
+      }
+    }
     existing.push(...currentEffects);
   } else {
     effects.set(e, currentEffects);
@@ -146,9 +151,9 @@ function remove(elem) {
 
 export function show(props) {
   let prevIndex = -1;
-  let prevElem: Element | Comment | undefined;
+  let prevElem: Element | Comment;
 
-  const eff = $effect(() => {
+  $effect(() => {
     const currIndex = props.findIndex((c) => !c.if || c.if());
     if (currIndex === prevIndex) {
       if (!prevElem) {
@@ -159,14 +164,16 @@ export function show(props) {
     const newElem = currIndex < 0 ? document.createComment("") : props[currIndex].then();
     if (prevElem) {
       const prevFx = effects.get(prevElem);
+      let sticky = [];
       if (prevFx) {
-        effects.set(prevElem, prevFx.filter((f) => f !== eff));
+        sticky = prevFx.filter(f => f.show);
+        effects.set(prevElem, prevFx.filter(f => !f.show));
       }
       const fx = effects.get(newElem);
       if (fx) {
-        fx.push(eff);
+        fx.push(...sticky);
       } else {
-        effects.set(newElem, [eff]);
+        effects.set(newElem, sticky);
       }
       let td = prevElem;
       queueMicrotask(() => {
@@ -177,7 +184,7 @@ export function show(props) {
     }
     prevElem = newElem;
     prevIndex = currIndex;
-  });
+  }, true);
 
   return prevElem;
 }

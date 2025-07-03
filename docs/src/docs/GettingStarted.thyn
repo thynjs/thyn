@@ -1,0 +1,8 @@
+<script>
+  import { Link } from "@thyn/core/router";
+</script>
+
+<main>
+  Getting Started
+  <Link to="/">Home</Link>
+</main>

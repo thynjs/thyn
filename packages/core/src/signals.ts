@@ -142,11 +142,12 @@ function runEffect(effectFn, skip?: boolean) {
 }
 
 
-export function $effect(fn) {
+export function $effect(fn: () => (() => void) | void, show?: boolean) {
   const effectFn = {
     run: fn,
     deps: new Set(),
     td: null,
+    show,
   };
   runEffect(effectFn, true);
   if (currentEffects) currentEffects.push(effectFn);

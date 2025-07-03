@@ -2,7 +2,7 @@
   const items = $signal([0, 1, 2]);
 </script>
 
-<div @click={() => items(v => [...v, v.length])}>
+<div onclick={() => items(v => [...v, v.length])}>
   <p class="hi" #for={item of items()}>
     {{ item }}
   </p>

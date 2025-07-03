@@ -48,4 +48,19 @@ describe("show", () => {
     await wait();
     expect(root.textContent).toBe("c");
   });
+
+  it("different signals", async () => {
+    const foo = $signal("a");
+    const bar = $signal("b");
+    const root = makeShow([
+      { if: () => foo() === "a", then: () => document.createTextNode("foo") },
+      { if: () => bar() === "a", then: () => document.createTextNode("bar") },
+      { then: () => document.createTextNode("c") },
+    ]);
+    expect(root.textContent).toBe("foo");
+    foo("b")
+    bar("a");
+    await wait();
+    expect(root.textContent).toBe("bar");
+  });
 });

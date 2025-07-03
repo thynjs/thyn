@@ -1,0 +1,3 @@
+<div #for={char in ["a", "b", "c"]}>
+  {{ char }}
+</div>

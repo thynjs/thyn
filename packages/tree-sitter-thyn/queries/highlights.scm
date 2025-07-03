@@ -1,11 +1,6 @@
 ; Tags
 (tag_name) @tag
 
-; Handler attributes (@click)
-(handler_attribute
-  "@" @operator
-  (handler_name) @function)
-
 ; Directive attributes (#for, #if, etc.)
 (directive_attribute
   "#" @operator

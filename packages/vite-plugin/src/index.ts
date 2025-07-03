@@ -44,6 +44,8 @@ function isReactiveExpression(expr) {
   return isReactive;
 }
 
+const DOUBLE_QUOTE = "__THYN__DOUBLE_QUOTE__";
+
 function parseAttributes(el) {
   const result: { [key: string]: { raw: string } | { quoted: string } } = {};
   for (const attr of el.attributes) {
@@ -88,9 +90,9 @@ function parseAttributes(el) {
         name !== ":#else-if" && name !== ":#else"
       ) {
         value = `() => ${value}`;
-        result[name.slice(1)] = { raw: value };
+        result[name.slice(1)] = { raw: value.replace(new RegExp(DOUBLE_QUOTE, "g"), '"') };
       } else {
-        result[name.slice(1)] = { raw: value };
+        result[name.slice(1)] = { raw: value.replace(new RegExp(DOUBLE_QUOTE, "g"), '"') };
       }
     } else {
       result[name] = { quoted: value };
@@ -691,62 +693,61 @@ const forcedChildren = new Map([
 const COMPONENT_TAG_REGEX =
   /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
-function convertToColonBindings(html) {
-  // First handle # directives
-  html = html.replace(
-    /(<[^>]*?)(\s)#([a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
-    (_, tagStart, space, key, value) =>
-      `${tagStart}${space}:#${key}="${value.trim()}"`,
-  );
+function convertToColonBindings(html: string): string {
+  let result = '';
+  let i = 0;
 
-  // Then handle regular attribute bindings
-  html = html.replace(
-    /(<[^>]*?)(\s)([a-zA-Z_][\w\-]*)=\{([^}]+)\}/g,
-    (_, tagStart, space, key, value) =>
-      `${tagStart}${space}:${key}="${value.trim()}"`,
-  );
-
-  return html;
-}
-
-function convertEventHandlerAttributes(html) {
-  let result = html;
-  let match;
-  const regex = /(<[^>]*?)(\s)@([a-zA-Z_][\w\-]*)=\{/g;
-
-  while ((match = regex.exec(html)) !== null) {
-    const [fullMatch, tagStart, space, eventName] = match;
-    const startIndex = match.index + fullMatch.length;
-
-    // Find the matching closing brace
-    let braceCount = 1;
-    let endIndex = startIndex;
-
-    while (endIndex < html.length && braceCount > 0) {
-      if (html[endIndex] === "{") braceCount++;
-      else if (html[endIndex] === "}") braceCount--;
-      endIndex++;
+  while (i < html.length) {
+    const start = html.indexOf('={', i);
+    if (start === -1) {
+      result += html.slice(i);
+      break;
     }
 
-    const handler = html.slice(startIndex, endIndex - 1);
-    const originalText = html.slice(match.index, endIndex);
-    const replacement =
-      `${tagStart}${space}:on${eventName}="${handler.trim()}"`;
+    // Backtrack to find attribute name and tag
+    let attrStart = start - 1;
+    while (attrStart >= 0 && /\s/.test(html[attrStart])) attrStart--;
 
-    result = result.replace(originalText, replacement);
-    break; // Process one at a time to avoid index issues
-  }
+    while (attrStart >= 0 && /[^\s<>=]/.test(html[attrStart])) attrStart--;
 
-  // If we made a replacement, recursively process the result
-  if (result !== html) {
-    return convertEventHandlerAttributes(result);
+    const tagStart = html.slice(i, attrStart + 1);
+    const attrMatch = html.slice(attrStart + 1, start).match(/^([#a-zA-Z_][\w\-]*)$/);
+    if (!attrMatch) {
+      // Skip malformed
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
+    const key = attrMatch[1];
+
+    // Parse balanced {}
+    let braceCount = 1;
+    let j = start + 2;
+    while (j < html.length && braceCount > 0) {
+      if (html[j] === '{') braceCount++;
+      else if (html[j] === '}') braceCount--;
+      j++;
+    }
+
+    if (braceCount !== 0) {
+      // Unbalanced braces, treat as raw
+      result += html.slice(i, j);
+      i = j;
+      continue;
+    }
+
+    const jsExpr = html.slice(start + 2, j - 1).trim();
+    const prefix = key.startsWith('#') ? ':#' + key.slice(1) : ':' + key;
+
+    result += tagStart + ` ${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
+    i = j;
   }
 
   return result;
 }
 
 function preprocessHTML(html: string): string {
-  html = convertEventHandlerAttributes(html);
   html = convertToColonBindings(html);
   html = addComponentAttributes(html);
   html = preserveCamelCaseAttributes(html);

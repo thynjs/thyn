@@ -1,14 +1,61 @@
 import { component, show } from "./element.js";
-import { $signal } from "./signals.js";
+import { $signal, $effect } from "./signals.js";
 
-export const pathname = $signal(location.pathname);
+const params = $signal({} as any);
 
-export function Router({ routes }) {
+export const router = {
+  path: $signal(location.pathname),
+  param: (name: string): string | undefined => params()[name],
+};
+
+
+interface Route {
+  path: string;
+  component: () => Node;
+}
+
+export function Router({ routes }: { routes: Route[] }) {
+  const current = $signal(null);
+  const compiledRoutes = routes.map(route => {
+    const compiledRoute = {
+      path: null,
+      raw: route,
+      names: [],
+      component: route.component,
+    };
+    compiledRoute.path = new RegExp(`^${route.path.replace(/\/:([^/]+)/g, (_, name) => {
+      compiledRoute.names.push(name);
+      return '/([^/]+)';
+    })}$`);
+    return compiledRoute;
+  });
+
+  $effect(() => {
+    const pn = router.path();
+    if (pn !== location.pathname) {
+      history.pushState({}, "", pn);
+    }
+    const ps = {};
+    let rt = null;
+    for (const route of compiledRoutes) {
+      const match = pn.match(route.path);
+      if (!match) continue;
+      for (let i = 0; i < route.names.length; i++) {
+        const name = route.names[i];
+        ps[name] = decodeURIComponent(match[i + 1]);
+      }
+      rt = route;
+      break;
+    };
+    current(rt);
+    params(ps);
+  });
+
   return component(
     show,
-    routes.map((r) => ({
-      if: () => r.path === pathname(),
-      then: r.component,
+    compiledRoutes.map((r) => ({
+      if: () => r === current(),
+      then: () => component(r.component),
     })),
   );
 }
@@ -16,11 +63,9 @@ export function Router({ routes }) {
 export function Link({ slot, to }) {
   const a = document.createElement("a");
   a.href = to;
-
   for (const ch of slot) {
     a.appendChild(ch);
   }
-
   a.onclick = (e) => {
     if (
       !e.defaultPrevented &&
@@ -29,9 +74,8 @@ export function Link({ slot, to }) {
     ) {
       e.preventDefault();
       history.pushState({}, "", to);
-      pathname(to);
+      router.path(to);
     }
   };
-
   return a;
 }

@@ -48,16 +48,6 @@ module.exports = grammar({
     ),
 
     // Fixed: Added optional whitespace handling
-    handler_attribute: $ => seq(
-      "@",
-      $.handler_name,
-      optional(/\s+/),
-      "=",
-      optional(/\s*/),
-      $.quoted_expression
-    ),
-
-    // Fixed: Added optional whitespace handling
     directive_attribute: $ => seq(
       "#",
       $.directive_name,

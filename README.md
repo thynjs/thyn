@@ -30,7 +30,7 @@ npm run dev
   });
 </script>
 
-<button @click={() => count(c => c + 1)}>
+<button onclick={() => count(c => c + 1)}>
   Count: {{ count() }}
 </button>
 
