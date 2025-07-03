@@ -694,40 +694,80 @@ const COMPONENT_TAG_REGEX =
   /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
 function convertToColonBindings(html: string): string {
-  return html.replace(/<([a-zA-Z][^\s>/]*)([\s\S]*?)>/g, (fullMatch, tagName, attrString) => {
-    let result = '';
-    let i = 0;
+  let result = '';
+  let i = 0;
 
-    while (i < attrString.length) {
-      const attrMatch = attrString.slice(i).match(/^\s([^\s=]+)=\{/);
-      if (attrMatch) {
-        const [fullAttrMatch, key] = attrMatch;
-        const start = i + fullAttrMatch.length;
-
-        // Find matching closing brace
-        let braceCount = 1;
-        let j = start;
-        while (j < attrString.length && braceCount > 0) {
-          if (attrString[j] === '{') braceCount++;
-          else if (attrString[j] === '}') braceCount--;
-          j++;
-        }
-
-        const value = attrString.slice(start, j - 1);
-        const replacedValue = value.replace(/"/g, DOUBLE_QUOTE);
-
-        result += ` :${key}="${replacedValue}"`;
-        i = j; // Move past closing brace
-      } else {
-        result += attrString[i];
-        i++;
-      }
+  while (i < html.length) {
+    const start = html.indexOf('={', i);
+    if (start === -1) {
+      result += html.slice(i);
+      break;
     }
 
-    return `<${tagName}${result}>`;
-  });
-}
+    // Check if we're inside escaped HTML (&lt; ... &gt;)
+    let beforeStart = html.slice(0, start);
+    let lastLt = beforeStart.lastIndexOf('<');
+    let lastAmpLt = beforeStart.lastIndexOf('&lt;');
 
+    // If the last &lt; is more recent than the last <, we're in escaped HTML
+    if (lastAmpLt > lastLt) {
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
+    // Find the attribute name by going backwards
+    let attrEnd = start - 1;
+    while (attrEnd >= 0 && /\s/.test(html[attrEnd])) attrEnd--;
+
+    let attrStart = attrEnd;
+    while (attrStart >= 0 && /[a-zA-Z0-9_#-]/.test(html[attrStart])) {
+      attrStart--;
+    }
+    attrStart++; // Move to first character of attribute name
+
+    if (attrStart > attrEnd) {
+      // No valid attribute name found
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
+    const attrName = html.slice(attrStart, attrEnd + 1);
+
+    // Validate attribute name
+    if (!/^[#a-zA-Z_][\w\-]*$/.test(attrName)) {
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
+    // Parse balanced {}
+    let braceCount = 1;
+    let j = start + 2;
+    while (j < html.length && braceCount > 0) {
+      if (html[j] === '{') braceCount++;
+      else if (html[j] === '}') braceCount--;
+      j++;
+    }
+
+    if (braceCount !== 0) {
+      // Unbalanced braces, treat as raw
+      result += html.slice(i, j);
+      i = j;
+      continue;
+    }
+
+    const jsExpr = html.slice(start + 2, j - 1).trim();
+    const prefix = attrName.startsWith('#') ? ':#' + attrName.slice(1) : ':' + attrName;
+    const beforeAttr = html.slice(i, attrStart);
+
+    result += beforeAttr + `${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
+    i = j;
+  }
+
+  return result;
+}
 
 function preprocessHTML(html: string): string {
   html = convertToColonBindings(html);
