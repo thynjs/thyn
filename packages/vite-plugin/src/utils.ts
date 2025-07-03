@@ -30,7 +30,7 @@ export function escapeTemplateLiteral(text: string): string {
   return text
     .replace(/\\/g, '\\\\')     // Escape backslashes
     .replace(/`/g, '\\`')       // Escape backticks
-    .replace(/\$\{/g, '\\${');  // Escape interpolation
+    .replace(/\$/g, '\\$');  // Escape interpolation
 }
 
 export function splitScript(script: string) {

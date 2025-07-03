@@ -1,0 +1,12 @@
+<script>
+  const foo = $signal(0);
+  const bar = $signal(0);
+</script>
+
+<div>
+  {{ foo() }}
+  <span>
+    {{ bar() }}
+  </span>
+</div>
+

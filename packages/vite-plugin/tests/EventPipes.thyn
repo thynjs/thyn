@@ -1,0 +1,11 @@
+<script>
+  const foo = $signal(0);
+  const bar = $signal(0);
+</script>
+
+<div onclick={() => bar(c => c + 1)}>
+  <div class="inner" onclick.stop={() => foo(c => c + 1)}>
+    <span>{{ foo() }}</span><span>{{ bar() }}</span>
+  </div>
+</div>
+
