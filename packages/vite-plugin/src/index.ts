@@ -694,76 +694,40 @@ const COMPONENT_TAG_REGEX =
   /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
 function convertToColonBindings(html: string): string {
-  let result = '';
-  let i = 0;
+  return html.replace(/<([a-zA-Z][^\s>/]*)([\s\S]*?)>/g, (fullMatch, tagName, attrString) => {
+    let result = '';
+    let i = 0;
 
-  // Track if we're inside code blocks
-  const isInsideCodeBlock = (position: number): boolean => {
-    const beforeText = html.slice(0, position);
+    while (i < attrString.length) {
+      const attrMatch = attrString.slice(i).match(/^\s([^\s=]+)=\{/);
+      if (attrMatch) {
+        const [fullAttrMatch, key] = attrMatch;
+        const start = i + fullAttrMatch.length;
 
-    // Count opening and closing code/pre tags
-    const codeOpenings = (beforeText.match(/<(code|pre)(\s[^>]*)?>/gi) || []).length;
-    const codeClosings = (beforeText.match(/<\/(code|pre)>/gi) || []).length;
+        // Find matching closing brace
+        let braceCount = 1;
+        let j = start;
+        while (j < attrString.length && braceCount > 0) {
+          if (attrString[j] === '{') braceCount++;
+          else if (attrString[j] === '}') braceCount--;
+          j++;
+        }
 
-    return codeOpenings > codeClosings;
-  };
+        const value = attrString.slice(start, j - 1);
+        const replacedValue = value.replace(/"/g, DOUBLE_QUOTE);
 
-  while (i < html.length) {
-    const start = html.indexOf('={', i);
-    if (start === -1) {
-      result += html.slice(i);
-      break;
+        result += ` :${key}="${replacedValue}"`;
+        i = j; // Move past closing brace
+      } else {
+        result += attrString[i];
+        i++;
+      }
     }
 
-    // Check if this ={ is inside a code block
-    if (isInsideCodeBlock(start)) {
-      // Skip this occurrence and continue
-      result += html.slice(i, start + 2);
-      i = start + 2;
-      continue;
-    }
-
-    // Backtrack to find attribute name and tag
-    let attrStart = start - 1;
-    while (attrStart >= 0 && /\s/.test(html[attrStart])) attrStart--;
-    while (attrStart >= 0 && /[^\s<>=]/.test(html[attrStart])) attrStart--;
-
-    const tagStart = html.slice(i, attrStart + 1);
-    const attrMatch = html.slice(attrStart + 1, start).match(/^([#a-zA-Z_][\w\-]*)$/);
-
-    if (!attrMatch) {
-      // Skip malformed
-      result += html.slice(i, start + 2);
-      i = start + 2;
-      continue;
-    }
-
-    const key = attrMatch[1];
-
-    // Parse balanced {}
-    let braceCount = 1;
-    let j = start + 2;
-    while (j < html.length && braceCount > 0) {
-      if (html[j] === '{') braceCount++;
-      else if (html[j] === '}') braceCount--;
-      j++;
-    }
-
-    if (braceCount !== 0) {
-      // Unbalanced braces, treat as raw
-      result += html.slice(i, j);
-      i = j;
-      continue;
-    }
-
-    const jsExpr = html.slice(start + 2, j - 1).trim();
-    const prefix = key.startsWith('#') ? ':#' + key.slice(1) : ':' + key;
-    result += tagStart + ` ${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
-    i = j;
-  }
-
-  return result;
+    return `<${tagName}${result}>`;
+  });
 }
+
 
 function preprocessHTML(html: string): string {
   html = convertToColonBindings(html);
