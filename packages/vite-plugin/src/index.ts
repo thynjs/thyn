@@ -697,6 +697,17 @@ function convertToColonBindings(html: string): string {
   let result = '';
   let i = 0;
 
+  // Track if we're inside code blocks
+  const isInsideCodeBlock = (position: number): boolean => {
+    const beforeText = html.slice(0, position);
+
+    // Count opening and closing code/pre tags
+    const codeOpenings = (beforeText.match(/<(code|pre)(\s[^>]*)?>/gi) || []).length;
+    const codeClosings = (beforeText.match(/<\/(code|pre)>/gi) || []).length;
+
+    return codeOpenings > codeClosings;
+  };
+
   while (i < html.length) {
     const start = html.indexOf('={', i);
     if (start === -1) {
@@ -704,14 +715,22 @@ function convertToColonBindings(html: string): string {
       break;
     }
 
+    // Check if this ={ is inside a code block
+    if (isInsideCodeBlock(start)) {
+      // Skip this occurrence and continue
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
     // Backtrack to find attribute name and tag
     let attrStart = start - 1;
     while (attrStart >= 0 && /\s/.test(html[attrStart])) attrStart--;
-
     while (attrStart >= 0 && /[^\s<>=]/.test(html[attrStart])) attrStart--;
 
     const tagStart = html.slice(i, attrStart + 1);
     const attrMatch = html.slice(attrStart + 1, start).match(/^([#a-zA-Z_][\w\-]*)$/);
+
     if (!attrMatch) {
       // Skip malformed
       result += html.slice(i, start + 2);
@@ -739,7 +758,6 @@ function convertToColonBindings(html: string): string {
 
     const jsExpr = html.slice(start + 2, j - 1).trim();
     const prefix = key.startsWith('#') ? ':#' + key.slice(1) : ':' + key;
-
     result += tagStart + ` ${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
     i = j;
   }
