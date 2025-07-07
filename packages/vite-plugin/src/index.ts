@@ -702,44 +702,64 @@ const COMPONENT_TAG_REGEX =
 function convertToColonBindings(html: string): string {
   let result = '';
   let i = 0;
+
   while (i < html.length) {
     const start = html.indexOf('={', i);
     if (start === -1) {
       result += html.slice(i);
       break;
     }
+
     // Check if we're inside escaped HTML (&lt; ... &gt;)
     let beforeStart = html.slice(0, start);
     let lastLt = beforeStart.lastIndexOf('<');
     let lastAmpLt = beforeStart.lastIndexOf('&lt;');
+
     // If the last &lt; is more recent than the last <, we're in escaped HTML
     if (lastAmpLt > lastLt) {
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
+
+    // Find the most recent < and > before our position
+    let lastTagOpen = beforeStart.lastIndexOf('<');
+    let lastTagClose = beforeStart.lastIndexOf('>');
+
+    // If there's no unclosed tag (last > is more recent than last <), skip
+    if (lastTagClose >= lastTagOpen) {
+      result += html.slice(i, start + 2);
+      i = start + 2;
+      continue;
+    }
+
     // Find the attribute name by going backwards
     let attrEnd = start - 1;
     while (attrEnd >= 0 && /\s/.test(html[attrEnd])) attrEnd--;
     let attrStart = attrEnd;
+
     // Updated to include dots in attribute names
     while (attrStart >= 0 && /[a-zA-Z0-9_#.-]/.test(html[attrStart])) {
       attrStart--;
     }
     attrStart++; // Move to first character of attribute name
+
     if (attrStart > attrEnd) {
       // No valid attribute name found
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
+
     const attrName = html.slice(attrStart, attrEnd + 1);
+
     // Updated validation to allow dots in attribute names
     if (!/^[#a-zA-Z_][\w\-\.]*$/.test(attrName)) {
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
+
     // Parse balanced {}
     let braceCount = 1;
     let j = start + 2;
@@ -748,18 +768,22 @@ function convertToColonBindings(html: string): string {
       else if (html[j] === '}') braceCount--;
       j++;
     }
+
     if (braceCount !== 0) {
       // Unbalanced braces, treat as raw
       result += html.slice(i, j);
       i = j;
       continue;
     }
+
     const jsExpr = html.slice(start + 2, j - 1).trim();
     const prefix = attrName.startsWith('#') ? ':#' + attrName.slice(1) : ':' + attrName;
     const beforeAttr = html.slice(i, attrStart);
+
     result += beforeAttr + `${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
     i = j;
   }
+
   return result;
 }
 

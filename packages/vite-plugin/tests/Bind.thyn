@@ -4,3 +4,5 @@
 </script>
 
 <div class={isSelected('foo') ? 'danger' : 'bar'}>
+const n={run:t,deps:new Set,td:null}
+</div>
