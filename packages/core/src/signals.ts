@@ -167,6 +167,5 @@ export function cleanup(effectFn) {
     for (const f of td) {
       f();
     }
-    effectFn.td = null;
   }
 }

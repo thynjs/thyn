@@ -702,26 +702,22 @@ const COMPONENT_TAG_REGEX =
 function convertToColonBindings(html: string): string {
   let result = '';
   let i = 0;
-
   while (i < html.length) {
     const start = html.indexOf('={', i);
     if (start === -1) {
       result += html.slice(i);
       break;
     }
-
     // Check if we're inside escaped HTML (&lt; ... &gt;)
     let beforeStart = html.slice(0, start);
     let lastLt = beforeStart.lastIndexOf('<');
     let lastAmpLt = beforeStart.lastIndexOf('&lt;');
-
     // If the last &lt; is more recent than the last <, we're in escaped HTML
     if (lastAmpLt > lastLt) {
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
-
     // Find the most recent < and > before our position
     let lastTagOpen = beforeStart.lastIndexOf('<');
     let lastTagClose = beforeStart.lastIndexOf('>');
@@ -732,34 +728,28 @@ function convertToColonBindings(html: string): string {
       i = start + 2;
       continue;
     }
-
     // Find the attribute name by going backwards
     let attrEnd = start - 1;
     while (attrEnd >= 0 && /\s/.test(html[attrEnd])) attrEnd--;
     let attrStart = attrEnd;
-
     // Updated to include dots in attribute names
     while (attrStart >= 0 && /[a-zA-Z0-9_#.-]/.test(html[attrStart])) {
       attrStart--;
     }
     attrStart++; // Move to first character of attribute name
-
     if (attrStart > attrEnd) {
       // No valid attribute name found
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
-
     const attrName = html.slice(attrStart, attrEnd + 1);
-
     // Updated validation to allow dots in attribute names
     if (!/^[#a-zA-Z_][\w\-\.]*$/.test(attrName)) {
       result += html.slice(i, start + 2);
       i = start + 2;
       continue;
     }
-
     // Parse balanced {}
     let braceCount = 1;
     let j = start + 2;
@@ -768,22 +758,18 @@ function convertToColonBindings(html: string): string {
       else if (html[j] === '}') braceCount--;
       j++;
     }
-
     if (braceCount !== 0) {
       // Unbalanced braces, treat as raw
       result += html.slice(i, j);
       i = j;
       continue;
     }
-
     const jsExpr = html.slice(start + 2, j - 1).trim();
     const prefix = attrName.startsWith('#') ? ':#' + attrName.slice(1) : ':' + attrName;
     const beforeAttr = html.slice(i, attrStart);
-
     result += beforeAttr + `${prefix}="${jsExpr.replace(/"/g, DOUBLE_QUOTE)}"`;
     i = j;
   }
-
   return result;
 }
 
@@ -860,6 +846,75 @@ function addScopeId(el, scopeId) {
     addScopeId(child, scopeId);
   }
 }
+
+function removeUnusedThynVars(code: string): string {
+  const varDeclRE = /const (\__THYN__\d+) = ([^\n;]+);/g;
+
+  const varToExpr = new Map<string, string>();
+  const exprDeps = new Map<string, Set<string>>();
+  const allVars = new Set<string>();
+  const directlyUsed = new Set<string>();
+
+  // 1. Collect variable declarations
+  let match: RegExpExecArray | null;
+  while ((match = varDeclRE.exec(code))) {
+    const name = match[1];
+    const expr = match[2];
+    varToExpr.set(name, expr);
+    allVars.add(name);
+
+    // Track dependencies (i.e., const a = b.c → b is a dependency)
+    const deps = new Set<string>();
+    for (const dep of expr.match(/\__THYN__\d+/g) || []) {
+      deps.add(dep);
+    }
+    exprDeps.set(name, deps);
+  }
+
+  // 2. Detect any variable used outside its own declaration
+  for (const name of allVars) {
+    const usageRE = new RegExp(`\\b${name}\\b`, "g");
+    while ((match = usageRE.exec(code))) {
+      const idx = match.index;
+      const lineStart = code.lastIndexOf("\n", idx);
+      const line = code.slice(lineStart + 1, code.indexOf("\n", idx + 1));
+      if (!line.startsWith(`const ${name} =`)) {
+        directlyUsed.add(name);
+        break;
+      }
+    }
+  }
+
+  // 3. Add any variable that is `return`ed
+  const returnRE = /return (\__THYN__\d+);/g;
+  while ((match = returnRE.exec(code))) {
+    directlyUsed.add(match[1]);
+  }
+
+  // 4. Walk transitive dependency graph
+  const keep = new Set<string>(directlyUsed);
+  const stack = [...directlyUsed];
+
+  while (stack.length) {
+    const current = stack.pop()!;
+    const deps = exprDeps.get(current);
+    if (!deps) continue;
+    for (const dep of deps) {
+      if (!keep.has(dep)) {
+        keep.add(dep);
+        stack.push(dep);
+      }
+    }
+  }
+
+  // 5. Remove any declaration not in the keep set
+  const cleaned = code.replace(varDeclRE, (decl, name) => {
+    return keep.has(name) ? decl : "";
+  });
+
+  return cleaned;
+}
+
 
 async function transformHTMLtoJSX(html: string, style: string) {
   const scopeId = `thyn-${(styleId++).toString(36)}`;
@@ -940,7 +995,7 @@ export async function transformSFC(source: string, id: string) {
     "",
     `export default function ${name}($props) {`,
     ...body.map((l) => "  " + l),
-    `  ${transformed} return ${root};`,
+    removeUnusedThynVars(`  ${transformed} return ${root};`),
     `}`,
   ].join("\n"));
 
