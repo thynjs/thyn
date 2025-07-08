@@ -203,6 +203,8 @@ export function list(props, terminal = false) {
   let prevItems;
   const startBookend = document.createComment("") as any;
   const endBookend = document.createComment("") as any;
+  startBookend.$frag = outlet;
+  startBookend.$end = endBookend;
   const render = props.render;
   let isolated;
 
@@ -380,7 +382,5 @@ export function list(props, terminal = false) {
     }
     prevItems = nextItems;
   });
-  startBookend.$frag = outlet;
-  startBookend.$end = endBookend;
   return outlet;
 }
