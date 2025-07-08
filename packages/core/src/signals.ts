@@ -10,7 +10,10 @@ function scheduleEffect(effectFn: EffectFn) {
   if (!isBatching) {
     isBatching = true;
     queueMicrotask(() => {
-      for (const ef of pendingEffects) runEffect(ef);
+      for (const ef of pendingEffects) {
+        cleanup(ef);
+        runEffect(ef);
+      }
       pendingEffects.length = 0;
       isBatching = false;
     });
@@ -124,10 +127,7 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
   };
 }
 
-function runEffect(effectFn: EffectFn, skip?: boolean) {
-  if (!skip) {
-    cleanup(effectFn);
-  }
+function runEffect(effectFn: EffectFn) {
   const prev = currentEffect;
   currentEffect = effectFn;
   const td = effectFn.run();
@@ -154,16 +154,14 @@ export function $effect(fn: EffectFn["run"], show?: boolean) {
     deps: new Set(),
   };
   if (show) effectFn.show = true;
-  runEffect(effectFn, true);
-  if (currentEffects) currentEffects.push(effectFn);
-  return effectFn;
+  runEffect(effectFn);
+  currentEffects?.push(effectFn);
 }
 
 export function cleanup(effectFn: EffectFn) {
-  const { deps, td } = effectFn;
-  for (const subs of deps) {
+  for (const subs of effectFn.deps) {
     subs.delete(effectFn);
   }
-  deps.clear();
-  if (td) for (const f of td) f();
+  effectFn.deps.clear();
+  if (effectFn.td) for (const f of effectFn.td) f();
 }

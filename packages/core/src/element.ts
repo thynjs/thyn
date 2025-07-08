@@ -220,9 +220,7 @@ export function list(props, terminal = false) {
     let newLength = nextItems.length;
     let oldLength = prevItems.length;
     if (!oldLength && newLength) {
-      for (const i of nextItems) {
-        parent.insertBefore(render(i), endBookend);
-      }
+      endBookend.before(...nextItems.map(render))
       prevItems = nextItems;
       return;
     }
@@ -254,9 +252,7 @@ export function list(props, terminal = false) {
 
     let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
     if (start === oldLength) {
-      for (let i = start; i < newLength; i++) {
-        parent.insertBefore(render(nextItems[i]), endBookend);
-      }
+      endBookend.before(...nextItems.slice(start).map(render));
       prevItems = nextItems;
       return;
     }
@@ -284,16 +280,13 @@ export function list(props, terminal = false) {
     }
 
     // suffix
-    oldLength--;
-    newLength--;
-    while (
+    for (
+      oldLength--, newLength--;
       newLength > start &&
       oldLength >= start &&
-      (nextItems[newLength] === prevItems[oldLength])
-    ) {
-      oldLength--;
-      newLength--;
-    }
+      nextItems[newLength] === prevItems[oldLength];
+      oldLength--, newLength--
+    );
 
     const nextKeys = new Set(nextItems);
     const removalQueue = [];
@@ -307,11 +300,7 @@ export function list(props, terminal = false) {
     }
     if (isolated && removalQueue.length === prevItems.length) {
       parent.textContent = "";
-      parent.appendChild(startBookend);
-      for (const i of nextItems) {
-        parent.appendChild(render(i));
-      }
-      parent.appendChild(endBookend);
+      parent.append(startBookend, ...nextItems.map(render), endBookend);
       prevItems = nextItems;
       return;
     }
@@ -357,12 +346,12 @@ export function list(props, terminal = false) {
       const mappedOld = keyMap.get(newChd);
       if (mappedOld) {
         const oldDom = childNodeList[start + offset];
-        const [el, item] = mappedOld;
+        const el = mappedOld[0];
         if (oldDom !== el) {
           const tmp = el.nextSibling;
           parent.insertBefore(el, oldDom);
           parent.insertBefore(oldDom, tmp);
-        } else if (item !== newChd) {
+        } else if (mappedOld[1] !== newChd) {
           replaceWith(newChd, el, render);
         }
         keyMap.delete(newChd);

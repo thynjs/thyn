@@ -116,6 +116,14 @@ describe("list", () => {
     expect(root.textContent).toBe("012");
   });
 
+  it("replaces all", async () => {
+    const items = $signal([0, 1]);
+    const root = makeList(items);
+    items([2, 3]);
+    await wait();
+    expect(root.textContent).toBe("23");
+  });
+
   it("sorts", async () => {
     const items = $signal([6, 0, 2, 4, 7, 1, 3, 5]);
     const root = makeList(items);
