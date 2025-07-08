@@ -282,7 +282,7 @@ function generateTextContentTemplate(
     const stat = `const ${root} = document.createTextNode("");\n`;
     const dynamic = `$effect(() => {
       ${textNode}.nodeValue = ${fn}();
-    });\n`;
+    }, true);\n`;
     return {
       static: stat,
       dynamic,
@@ -411,7 +411,7 @@ function makeTemplate(
               else ${dynRoot}.removeAttribute("class")
               ${prev} = val;
             }
-          });\n`;
+          }, true);\n`;
         continue;
       }
       if (key.includes("-")) {
@@ -427,7 +427,7 @@ function makeTemplate(
               ${dynRoot}.setAttribute("${key}", val);\n
             }
             ${ran} = true;
-          });\n`;
+          }, true);\n`;
       } else {
         code += `$effect(() => {
           const val = ${val.raw};
@@ -438,7 +438,7 @@ function makeTemplate(
           } else {
             ${dynRoot}.${key} = val;\n
           }
-        });\n`;
+        }, true);\n`;
       }
       continue;
     }

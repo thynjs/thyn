@@ -14,7 +14,7 @@ export function createReactiveTextNode(v) {
     } else {
       n = document.createTextNode(v());
     }
-  });
+  }, true);
   return n;
 }
 
@@ -24,9 +24,9 @@ export function component(name, props?: any) {
   const e = name(props);
   const existing = e.$fx;
   if (existing) {
-    if (existing.some(f => f.show)) {
+    if (existing.some(f => f.mv)) {
       for (const f of currentEffects) {
-        f.show = true;
+        f.mv = true;
       }
     }
     existing.push(...currentEffects);
@@ -58,7 +58,7 @@ export function setReactiveAttribute(el, key, val) {
       }
       if (v !== undefined) el.setAttribute(key, val());
       ran = true;
-    }),
+    }, true),
   );
   return el;
 }
@@ -75,7 +75,7 @@ export function setReactiveProperty(el, key, val) {
       }
       if (v !== undefined) el[key] = v;
       ran = true;
-    }),
+    }, true),
   );
   return el;
 }
@@ -161,8 +161,8 @@ export function show(props) {
       const prevFx = prevElem.$fx;
       let sticky = [];
       if (prevFx) {
-        sticky = prevFx.filter(f => f.show);
-        prevElem.$fx = prevFx.filter(f => !f.show);
+        sticky = prevFx.filter(f => f.mv);
+        prevElem.$fx = prevFx.filter(f => !f.mv);
       }
       const fx = newElem.$fx;
       if (fx) {
@@ -179,7 +179,7 @@ export function show(props) {
     }
     prevElem = newElem;
     prevIndex = currIndex;
-  }, true);
+  }, false, true);
 
   return prevElem;
 }
@@ -222,6 +222,7 @@ export function list(props, terminal = false) {
     if (!oldLength && newLength) {
       endBookend.before(...nextItems.map(render))
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
@@ -247,6 +248,7 @@ export function list(props, terminal = false) {
         }
       }
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
 
@@ -254,6 +256,7 @@ export function list(props, terminal = false) {
     if (start === oldLength) {
       endBookend.before(...nextItems.slice(start).map(render));
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
 
@@ -266,6 +269,7 @@ export function list(props, terminal = false) {
         remove(e);
       }
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
 
@@ -276,6 +280,7 @@ export function list(props, terminal = false) {
         remove(e);
       }
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
 
@@ -302,6 +307,7 @@ export function list(props, terminal = false) {
       parent.textContent = "";
       parent.append(startBookend, ...nextItems.map(render), endBookend);
       prevItems = nextItems;
+      nextItems = null;
       return;
     }
     for (const e of removalQueue) {
@@ -314,20 +320,22 @@ export function list(props, terminal = false) {
         (!nextItems[i] ||
           prevItems[i] !== nextItems[i])
       ) {
-        keyMap.set(prevItems[i], [
-          childNodes[i + offset],
-          prevItems[i],
-        ]);
+        keyMap.set(prevItems[i], {
+          el: childNodes[i + offset],
+          item: prevItems[i],
+        });
       }
     }
     if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
       const lastOrdered = childNodes[start + offset - 1];
       const set = [];
       for (let i = start; i <= newLength; i++) {
-        set.push(keyMap.get(nextItems[i])?.[0] ?? childNodes[i + offset]);
+        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + offset]);
       }
       lastOrdered.after(...set);
       prevItems = nextItems;
+      keyMap = null;
+      nextItems = null;
       return;
     }
 
@@ -346,12 +354,12 @@ export function list(props, terminal = false) {
       const mappedOld = keyMap.get(newChd);
       if (mappedOld) {
         const oldDom = childNodeList[start + offset];
-        const el = mappedOld[0];
+        const { el, item } = mappedOld;
         if (oldDom !== el) {
           const tmp = el.nextSibling;
           parent.insertBefore(el, oldDom);
           parent.insertBefore(oldDom, tmp);
-        } else if (mappedOld[1] !== newChd) {
+        } else if (item !== newChd) {
           replaceWith(newChd, el, render);
         }
         keyMap.delete(newChd);
@@ -360,11 +368,13 @@ export function list(props, terminal = false) {
       }
       start++;
     }
-    for (const v of keyMap.values()) {
-      teardownNode(v[0]);
-      remove(v[0]);
+    for (const { el } of keyMap.values()) {
+      teardownNode(el);
+      remove(el);
     }
+    keyMap = null;
     prevItems = nextItems;
-  });
+    nextItems = null;
+  }, true);
   return outlet;
 }

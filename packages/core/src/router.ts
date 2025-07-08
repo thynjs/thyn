@@ -49,7 +49,7 @@ export function Router({ routes }: { routes: Route[] }) {
     };
     current(rt);
     params(ps);
-  });
+  }, true);
 
   return component(
     show,

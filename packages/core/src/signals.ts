@@ -11,8 +11,15 @@ function scheduleEffect(effectFn: EffectFn) {
     isBatching = true;
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
-        cleanup(ef);
-        runEffect(ef);
+        if (ef.dyn) {
+          cleanup(ef);
+          const prev = currentEffect;
+          currentEffect = ef;
+          runEffectFn(ef);
+          currentEffect = prev;
+        } else {
+          runEffectFn(ef);
+        }
       }
       pendingEffects.length = 0;
       isBatching = false;
@@ -52,35 +59,6 @@ export function $signal<T>(value: T): Signal<T> {
   };
 }
 
-/**
- * Creates a reactive equality checker function based on a reactive source.
- *
- * This is useful when you want to conditionally react to equality against a selected value,
- * such as highlighting a selected item in a list. Only effects that call the returned function
- * with the **current** value will re-run when the source value changes.
- *
- * Example:
- *
- * ```ts
- * const selectedId  = $signal(null);
- * const isSelected = $compare(selectedId);
- *
- * $effect(() => {
- *   if (isSelected(row.id)) {
- *     // React only if row.id === selectedId()
- *   }
- * });
- * ```
- *
- * Internally, only effects that compare against the current or previous selected value
- * are re-evaluated when the source changes. This is especially efficient in large lists.
- *
- * @template T The type of the reactive value being compared.
- * @param {() => T} fn A reactive function returning the current value to compare against.
- * @returns {(value: T) => boolean} A function that returns true if the provided value
- * matches the current value from `fn()`. Automatically subscribes the calling effect
- * to changes in that specific value.
- */
 export function $compare<T>(fn: () => T): (value: T) => boolean {
   const map = new Map<T, Set<any>>();
   let current: T = fn();
@@ -101,7 +79,7 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
     if (nextSubs) {
       for (const sub of nextSubs) scheduleEffect(sub);
     }
-  });
+  }, true);
 
   return (value: T) => {
     if (currentEffect) {
@@ -127,9 +105,7 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
   };
 }
 
-function runEffect(effectFn: EffectFn) {
-  const prev = currentEffect;
-  currentEffect = effectFn;
+function runEffectFn(effectFn: EffectFn) {
   const td = effectFn.run();
   if (td) {
     if (effectFn.td) {
@@ -138,24 +114,29 @@ function runEffect(effectFn: EffectFn) {
       effectFn.td = [td];
     }
   }
-  currentEffect = prev;
 }
 
 interface EffectFn {
   run: () => (() => void) | void;
   deps: Set<any>;
-  show?: boolean;
+  mv?: boolean;
+  dyn?: boolean;
   td?: (() => void)[];
 }
 
-export function $effect(fn: EffectFn["run"], show?: boolean) {
+export function $effect(fn: EffectFn["run"], stat?: boolean, mv?: boolean) {
   const effectFn: EffectFn = {
     run: fn,
     deps: new Set(),
   };
-  if (show) effectFn.show = true;
-  runEffect(effectFn);
+  if (!stat) effectFn.dyn = true;
+  if (mv) effectFn.mv = true;
+  const prev = currentEffect;
+  currentEffect = effectFn;
+  runEffectFn(effectFn);
+  currentEffect = prev;
   currentEffects?.push(effectFn);
+  return effectFn;
 }
 
 export function cleanup(effectFn: EffectFn) {
