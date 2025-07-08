@@ -5,7 +5,7 @@ let currentEffect: any;
 let isBatching: boolean | undefined;
 const pendingEffects = [];
 
-function scheduleEffect(effectFn) {
+function scheduleEffect(effectFn: EffectFn) {
   pendingEffects.push(effectFn);
   if (!isBatching) {
     isBatching = true;
@@ -124,7 +124,7 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
   };
 }
 
-function runEffect(effectFn, skip?: boolean) {
+function runEffect(effectFn: EffectFn, skip?: boolean) {
   if (!skip) {
     cleanup(effectFn);
   }
@@ -141,31 +141,29 @@ function runEffect(effectFn, skip?: boolean) {
   currentEffect = prev;
 }
 
+interface EffectFn {
+  run: () => (() => void) | void;
+  deps: Set<any>;
+  show?: boolean;
+  td?: (() => void)[];
+}
 
-export function $effect(fn: () => (() => void) | void, show?: boolean) {
-  const effectFn = {
+export function $effect(fn: EffectFn["run"], show?: boolean) {
+  const effectFn: EffectFn = {
     run: fn,
     deps: new Set(),
-    show,
   };
+  if (show) effectFn.show = true;
   runEffect(effectFn, true);
   if (currentEffects) currentEffects.push(effectFn);
   return effectFn;
 }
 
-export function cleanup(effectFn) {
+export function cleanup(effectFn: EffectFn) {
   const { deps, td } = effectFn;
-
-  if (deps.size) {
-    for (const subs of deps) {
-      subs.delete(effectFn);
-    }
-    deps.clear();
+  for (const subs of deps) {
+    subs.delete(effectFn);
   }
-
-  if (td) {
-    for (const f of td) {
-      f();
-    }
-  }
+  deps.clear();
+  if (td) for (const f of td) f();
 }

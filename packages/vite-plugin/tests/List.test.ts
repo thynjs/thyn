@@ -4,10 +4,18 @@ import List from "./List.thyn";
 describe("List component", () => {
   it("appends on click", async () => {
     const root = List();
-    expect(root.textContent).toBe("012");
+    expect(root.textContent).toBe("start012end");
     root.click();
     await Promise.resolve();
     await Promise.resolve();
-    expect(root.textContent).toBe("0123");
+    expect(root.textContent).toBe("start0123end");
+    root.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(root.textContent).toBe("startend");
+    // root.click();
+    // await Promise.resolve();
+    // await Promise.resolve();
+    // expect(root.textContent).toBe("start0end");
   });
 });
