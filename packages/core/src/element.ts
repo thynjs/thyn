@@ -196,10 +196,7 @@ export function terminalList(props) {
 export function list(props, terminal = false) {
   const teardownNode = terminal ? (e: any) => e.$fx && shallowTeardown(e) : teardown;
   let parent;
-  const insertBefore = (n, r) => parent.insertBefore(n, r);
-  const appendChildToParent = n => parent.appendChild(n);
   let outlet = document.createDocumentFragment();
-  const appendChildToOutlet = n => outlet.appendChild(n);
   let prevItems;
   const startBookend = document.createComment("") as any;
   const endBookend = document.createComment("") as any;
@@ -212,11 +209,11 @@ export function list(props, terminal = false) {
     parent = startBookend.parentNode;
     if (!parent) {
       prevItems = props.items();
-      appendChildToOutlet(startBookend);
+      outlet.appendChild(startBookend);
       for (const i of prevItems) {
-        appendChildToOutlet(render(i));
+        outlet.appendChild(render(i));
       }
-      appendChildToOutlet(endBookend);
+      outlet.appendChild(endBookend);
       return;
     }
     let nextItems = props.items();
@@ -224,9 +221,8 @@ export function list(props, terminal = false) {
     let oldLength = prevItems.length;
     if (!oldLength && newLength) {
       for (const i of nextItems) {
-        appendChildToOutlet(render(i));
+        parent.insertBefore(render(i), endBookend);
       }
-      insertBefore(outlet, endBookend);
       prevItems = nextItems;
       return;
     }
@@ -239,8 +235,8 @@ export function list(props, terminal = false) {
           teardownNode(childNodeList[i]);
         }
         parent.textContent = "";
-        appendChildToParent(startBookend);
-        appendChildToParent(endBookend);
+        parent.appendChild(startBookend);
+        parent.appendChild(endBookend);
       } else {
         const removalQueue = [];
         for (let i = 1; i < end; i++) {
@@ -259,7 +255,7 @@ export function list(props, terminal = false) {
     let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
     if (start === oldLength) {
       for (let i = start; i < newLength; i++) {
-        insertBefore(render(nextItems[i]), endBookend);
+        parent.insertBefore(render(nextItems[i]), endBookend);
       }
       prevItems = nextItems;
       return;
@@ -311,11 +307,11 @@ export function list(props, terminal = false) {
     }
     if (isolated && removalQueue.length === prevItems.length) {
       parent.textContent = "";
-      appendChildToParent(startBookend);
+      parent.appendChild(startBookend);
       for (const i of nextItems) {
-        appendChildToParent(render(i));
+        parent.appendChild(render(i));
       }
-      appendChildToParent(endBookend);
+      parent.appendChild(endBookend);
       prevItems = nextItems;
       return;
     }
@@ -354,8 +350,7 @@ export function list(props, terminal = false) {
         continue;
       }
       if (oldChd === undefined) {
-        insertBefore(render(newChd), endBookend);
-        insertBefore
+        parent.insertBefore(render(newChd), endBookend);
         start++;
         continue;
       }
@@ -365,14 +360,14 @@ export function list(props, terminal = false) {
         const [el, item] = mappedOld;
         if (oldDom !== el) {
           const tmp = el.nextSibling;
-          insertBefore(el, oldDom);
-          insertBefore(oldDom, tmp);
+          parent.insertBefore(el, oldDom);
+          parent.insertBefore(oldDom, tmp);
         } else if (item !== newChd) {
           replaceWith(newChd, el, render);
         }
         keyMap.delete(newChd);
       } else if (oldChd !== newChd) {
-        insertBefore(render(newChd), childNodeList[start + offset]);
+        parent.insertBefore(render(newChd), childNodeList[start + offset]);
       }
       start++;
     }
