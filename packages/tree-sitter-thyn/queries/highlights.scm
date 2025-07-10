@@ -1,31 +1,68 @@
-; Tags
+; HTML Tags
 (tag_name) @tag
 
-; Directive attributes (#for, #if, etc.)
+; Attributes
+(event_attribute
+  (event_name) @function.method)
+
 (directive_attribute
   "#" @operator
-  (directive_name) @keyword)
+  (identifier) @keyword)
 
-; Regular attributes (e.g., class="button")
 (regular_attribute
   (attribute_name) @attribute
   (quoted_string) @string)
 
-; Quoted JavaScript expressions (e.g., {() => items(v => [...v, v.length])})
-(quoted_expression) @function.call
+; JavaScript expressions in attributes
+(expression_block
+  "{" @punctuation.bracket
+  "}" @punctuation.bracket)
 
-; Interpolation expressions (e.g., {{ item }})
+; Interpolation expressions
 (interpolation
   "{{" @punctuation.bracket
-  (javascript_expression) @variable
   "}}" @punctuation.bracket)
 
-; JavaScript content in <script> tags
+; JavaScript content
 (javascript_content) @source.js
 
-; CSS content in <style> tags
-(css_content) @source.css
+; JavaScript expressions
+(identifier) @variable
+(number) @number
+(string_literal) @string
 
-; Comments
-(comment) @comment
+; Function calls
+(function_call
+  (identifier) @function.call)
 
+; Signal calls
+(signal_call
+  "$signal" @function.builtin)
+
+; Arrow functions
+(arrow_function
+  "=>" @operator)
+
+; Spread operator
+(spread_expression
+  "..." @operator)
+
+; Property access
+(property_access
+  "." @operator)
+
+; For expressions in directives
+(for_expression
+  (identifier) @variable
+  "of" @keyword)
+
+; Variable declarations
+(variable_declaration
+  ["const" "let" "var"] @keyword
+  (identifier) @variable.declaration)
+
+; Operators and punctuation
+(open_tag_start) @punctuation.bracket
+(open_tag_end) @punctuation.bracket
+(close_tag_start) @punctuation.bracket
+(close_tag_end) @punctuation.bracket

@@ -1,7 +1,13 @@
 module.exports = grammar({
   name: "thyn",
+  
   rules: {
     source_file: $ => repeat($._statement),
+
+    _statement: $ => choice(
+      $.script_tag,
+      $.tag
+    ),
 
     script_tag: $ => seq(
       "<script>",
@@ -9,26 +15,114 @@ module.exports = grammar({
       "</script>"
     ),
 
-    // Pure JavaScript content for <script> tags
-    javascript_content: $ => token(prec(1, /[^<]+/)),
+    javascript_content: $ => repeat1($._js_statement),
 
-    _statement: $ => choice(
-      $.script_tag,
-      $.tag
+    _js_statement: $ => choice(
+      $.variable_declaration,
+      $.expression_statement
     ),
+
+    variable_declaration: $ => seq(
+      choice("const", "let", "var"),
+      $.identifier,
+      "=",
+      $._js_expression,
+      ";"
+    ),
+
+    expression_statement: $ => seq(
+      $._js_expression,
+      ";"
+    ),
+
+    _js_expression: $ => choice(
+      $.signal_call,
+      $.array,
+      $.arrow_function,
+      $.function_call,
+      $.parenthesized_expression,
+      $.spread_expression,
+      $.property_access,
+      $.for_expression,
+      $.identifier,
+      $.number,
+      $.string_literal
+    ),
+
+    signal_call: $ => seq(
+      "$signal",
+      "(",
+      $._js_expression,
+      ")"
+    ),
+
+    array: $ => seq(
+      "[",
+      optional(seq(
+        $._js_expression,
+        repeat(seq(",", optional(/\s*/), $._js_expression)),
+        optional(",")
+      )),
+      "]"
+    ),
+
+    function_call: $ => prec.left(3, seq(
+      $._js_expression,
+      "(",
+      optional(seq(
+        $._js_expression,
+        repeat(seq(",", optional(/\s*/), $._js_expression))
+      )),
+      ")"
+    )),
+
+    arrow_function: $ => prec.right(2, seq(
+      choice(
+        $.identifier,
+        seq("(", optional($.parameter_list), ")")
+      ),
+      "=>",
+      $._js_expression
+    )),
+
+    parameter_list: $ => prec(1, seq(
+      $.identifier,
+      repeat(seq(",", $.identifier))
+    )),
+
+    spread_expression: $ => prec.right(3, seq(
+      "...",
+      $._js_expression
+    )),
+
+    property_access: $ => prec.left(4, seq(
+      $._js_expression,
+      ".",
+      $.identifier
+    )),
+
+    parenthesized_expression: $ => seq(
+      "(",
+      $._js_expression,
+      ")"
+    ),
+
+    open_tag_start: $ => token("<"),
+    open_tag_end: $ => token(">"),
+    close_tag_start: $ => token("</"),
+    close_tag_end: $ => token(">"),
 
     tag: $ => seq(
-      "<",
+      $.open_tag_start,
       $.tag_name,
       optional($.attributes),
-      ">",
+      $.open_tag_end,
       optional($.content),
-      "</",
+      $.close_tag_start,
       $.tag_name,
-      ">"
+      $.close_tag_end
     ),
 
-    // Added content rule to handle mixed content better
     content: $ => repeat1(
       choice(
         $.text,
@@ -42,32 +136,32 @@ module.exports = grammar({
     attributes: $ => repeat1($.attribute),
 
     attribute: $ => choice(
-      $.handler_attribute,
+      $.event_attribute,
       $.directive_attribute,
       $.regular_attribute
     ),
 
-    // Fixed: Added optional whitespace handling
-    directive_attribute: $ => seq(
+    event_attribute: $ => prec(3, seq(
+      $.event_name,
+      "=",
+      $.expression_block
+    )),
+
+    directive_attribute: $ => prec(2, seq(
       "#",
-      $.directive_name,
-      optional(/\s+/),
+      $.identifier,
       "=",
-      optional(/\s*/),
-      $.quoted_expression
-    ),
+      $.expression_block
+    )),
 
-    regular_attribute: $ => seq(
+    regular_attribute: $ => prec(1, seq(
       $.attribute_name,
-      optional(/\s*/),
       "=",
-      optional(/\s*/),
       $.quoted_string
-    ),
+    )),
 
-    handler_name: $ => /[a-zA-Z][a-zA-Z0-9]*/,
-    directive_name: $ => /[a-zA-Z][a-zA-Z0-9]*/,
-    attribute_name: $ => /[a-zA-Z][a-zA-Z0-9-]*/,
+    event_name: $ => token(prec(10, /on[a-zA-Z][a-zA-Z0-9]*/)),
+    attribute_name: $ => token(prec(1, /[a-zA-Z][a-zA-Z0-9-]*/)),
 
     quoted_string: $ => seq(
       '"',
@@ -75,32 +169,49 @@ module.exports = grammar({
       '"'
     ),
 
-    quoted_expression: $ => seq(
+    string_content: $ => /[^"]*/,
+
+    expression_block: $ => seq(
       "{",
-      optional(/\s*/),
-      $.expression_content,
-      optional(/\s*/),
+      $._js_expression,
       "}"
     ),
 
-    // Improved text matching to handle whitespace better
-    text: $ => token(prec(-1, /[^<{]+/)),
-
     interpolation: $ => seq(
       "{{",
-      optional(/\s*/),
-      $.expression_content,
-      optional(/\s*/),
+      $._js_expression,
       "}}"
     ),
 
-    // Fixed: Better expression content handling
-    expression_content: $ => token(repeat1(/[^}]+/)),
+    // Special for directive expressions like "item of items()"
+    for_expression: $ => prec.right(2, seq(
+      $.identifier,
+      "of",
+      $._js_expression
+    )),
 
-    // Fixed: Allow empty strings
-    string_content: $ => token(/[^"]*/),
+    text: $ => /[^<{]+/,
 
-    // Add whitespace rule for explicit whitespace handling where needed
-    _whitespace: $ => token(/\s+/)
-  }
+    identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
+
+    number: $ => /\d+(\.\d+)?/,
+
+    string_literal: $ => seq(
+      '"',
+      optional(/[^"]*/),
+      '"'
+    )
+  },
+
+  extras: $ => [
+    /\s+/,
+    /\/\/.*\n/,
+    /\/\*[^*]*\*+([^/*][^*]*\*+)*\//
+  ],
+
+  conflicts: $ => [
+    [$.function_call, $.identifier],
+    [$.for_expression, $._js_expression],
+    [$._js_expression, $.parameter_list]
+  ]
 });
