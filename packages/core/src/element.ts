@@ -24,14 +24,46 @@ export function component(name, props?: any) {
   const e = name(props);
   const existing = e.$fx;
   if (existing) {
-    if (existing.some(f => f.mv)) {
+    // Check if any existing effects are marked as mv (move)
+    let hasMvEffect = false;
+    let current = existing;
+    while (current) {
+      if (current.mv) {
+        hasMvEffect = true;
+        break;
+      }
+      current = current.next;
+    }
+    
+    if (hasMvEffect) {
+      // Mark all current effects as mv
       for (const f of currentEffects) {
         f.mv = true;
       }
     }
-    existing.push(...currentEffects);
+    
+    // Append current effects to existing chain
+    if (currentEffects.length > 0) {
+      // Find the end of existing chain
+      let tail = existing;
+      while (tail.next) {
+        tail = tail.next;
+      }
+      
+      // Link the new effects
+      tail.next = currentEffects[0];
+      for (let i = 0; i < currentEffects.length - 1; i++) {
+        currentEffects[i].next = currentEffects[i + 1];
+      }
+    }
   } else {
-    e.$fx = currentEffects;
+    // Create new chain from currentEffects
+    if (currentEffects.length > 0) {
+      for (let i = 0; i < currentEffects.length - 1; i++) {
+        currentEffects[i].next = currentEffects[i + 1];
+      }
+      e.$fx = currentEffects[0];
+    }
   }
   currentEffects = prevEffects;
   return e;
@@ -88,22 +120,25 @@ export function addChildren(e, children) {
 }
 
 export function markAsReactive(el) {
-  if (!el.$fx) el.$fx = [];
+  if (!el.$fx) el.$fx = null; // Changed from [] to null
   return el;
 }
 
 export function addEffect(el, ef) {
   if (el.$fx) {
-    el.$fx.push(ef);
+    ef.next = el.$fx;
+    el.$fx = ef;
   } else {
-    el.$fx = [ef];
+    el.$fx = ef;
   }
   return el;
 }
 
 function shallowTeardown(elem) {
-  for (const eff of elem.$fx) {
-    cleanup(eff);
+  let current = elem.$fx;
+  while (current) {
+    cleanup(current);
+    current = current.next;
   }
 }
 
@@ -144,9 +179,35 @@ function remove(elem) {
   elem.remove();
 }
 
+// Helper function to filter linked list
+function filterEffects(head, predicate) {
+  let current = head;
+  let filtered = null;
+  let filteredTail = null;
+  
+  while (current) {
+    if (predicate(current)) {
+      if (!filtered) {
+        filtered = current;
+        filteredTail = current;
+      } else {
+        filteredTail.next = current;
+        filteredTail = current;
+      }
+    }
+    current = current.next;
+  }
+  
+  if (filteredTail) {
+    filteredTail.next = null;
+  }
+  
+  return filtered;
+}
+
 export function show(props) {
   let prevIndex = -1;
-  let prevElem: (Element | Comment) & { $fx?: any[] };
+  let prevElem: (Element | Comment) & { $fx?: any };
 
   $effect(() => {
     const currIndex = props.findIndex((c) => !c.if || c.if());
@@ -159,17 +220,28 @@ export function show(props) {
     const newElem = currIndex < 0 ? document.createComment("") : props[currIndex].then();
     if (prevElem) {
       const prevFx = prevElem.$fx;
-      let sticky = [];
+      let sticky = null;
       if (prevFx) {
-        sticky = prevFx.filter(f => f.mv);
-        prevElem.$fx = prevFx.filter(f => !f.mv);
+        sticky = filterEffects(prevFx, f => f.mv);
+        prevElem.$fx = filterEffects(prevFx, f => !f.mv);
       }
-      const fx = newElem.$fx;
-      if (fx) {
-        fx.push(...sticky);
-      } else {
-        newElem.$fx = sticky;
+      
+      if (sticky) {
+        // Find tail of sticky effects
+        let stickyTail = sticky;
+        while (stickyTail.next) {
+          stickyTail = stickyTail.next;
+        }
+        
+        // Append to new element's effects
+        if (newElem.$fx) {
+          stickyTail.next = newElem.$fx;
+          newElem.$fx = sticky;
+        } else {
+          newElem.$fx = sticky;
+        }
       }
+      
       let td = prevElem;
       queueMicrotask(() => {
         teardown(td);
