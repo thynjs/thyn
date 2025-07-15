@@ -4,7 +4,19 @@ export function mount(app, parent) {
   parent.appendChild(app());
 }
 
-export let currentEffects: any | undefined;
+// export let currentEffects: { head: any; tail: any } | undefined;
+let collectingHead;
+let collectingTail;
+
+export function collectEffect(effectFn) {
+  if (collectingHead) {
+    collectingTail.next = effectFn;
+    collectingTail = effectFn;
+  } else {
+    collectingHead = effectFn;
+    collectingTail = effectFn;
+  }
+}
 
 export function createReactiveTextNode(v) {
   let n;
@@ -19,53 +31,39 @@ export function createReactiveTextNode(v) {
 }
 
 export function component(name, props?: any) {
-  const prevEffects = currentEffects;
-  currentEffects = [];
+  const prevHead = collectingHead;
+  const prevTail = collectingTail;
+  collectingHead = null;
+  collectingTail = null;
   const e = name(props);
   const existing = e.$fx;
+  
   if (existing) {
-    // Check if any existing effects are marked as mv (move)
-    let hasMvEffect = false;
     let current = existing;
     while (current) {
       if (current.mv) {
-        hasMvEffect = true;
+        let curr = collectingHead;
+        while (curr) {
+          curr.mv = true;
+          curr = curr.next;
+        }
         break;
       }
       current = current.next;
     }
-    
-    if (hasMvEffect) {
-      // Mark all current effects as mv
-      for (const f of currentEffects) {
-        f.mv = true;
-      }
-    }
-    
-    // Append current effects to existing chain
-    if (currentEffects.length > 0) {
-      // Find the end of existing chain
+    if (collectingHead) {
       let tail = existing;
       while (tail.next) {
         tail = tail.next;
       }
-      
-      // Link the new effects
-      tail.next = currentEffects[0];
-      for (let i = 0; i < currentEffects.length - 1; i++) {
-        currentEffects[i].next = currentEffects[i + 1];
-      }
+      tail.next = collectingHead;
     }
   } else {
-    // Create new chain from currentEffects
-    if (currentEffects.length > 0) {
-      for (let i = 0; i < currentEffects.length - 1; i++) {
-        currentEffects[i].next = currentEffects[i + 1];
-      }
-      e.$fx = currentEffects[0];
-    }
+    e.$fx = collectingHead;
   }
-  currentEffects = prevEffects;
+  
+  collectingHead = prevHead;
+  collectingTail = prevTail;
   return e;
 }
 
@@ -79,7 +77,7 @@ export function setProperty(el, key, val) {
 }
 export function setReactiveAttribute(el, key, val) {
   let ran;
-  addEffect(
+  return addEffect(
     el,
     $effect(() => {
       const v = val();
@@ -92,11 +90,10 @@ export function setReactiveAttribute(el, key, val) {
       ran = true;
     }, true),
   );
-  return el;
 }
 export function setReactiveProperty(el, key, val) {
   let ran = true;
-  addEffect(
+  return addEffect(
     el,
     $effect(() => {
       const v = val();
@@ -109,7 +106,6 @@ export function setReactiveProperty(el, key, val) {
       ran = true;
     }, true),
   );
-  return el;
 }
 
 export function addChildren(e, children) {
@@ -120,7 +116,7 @@ export function addChildren(e, children) {
 }
 
 export function markAsReactive(el) {
-  if (!el.$fx) el.$fx = null; // Changed from [] to null
+  if (!el.$fx) el.$fx = null;
   return el;
 }
 
@@ -136,10 +132,14 @@ export function addEffect(el, ef) {
 
 function shallowTeardown(elem) {
   let current = elem.$fx;
+  let prev;
   while (current) {
     cleanup(current);
+    prev = current;
     current = current.next;
+    prev.next = undefined;
   }
+  elem.$fx = undefined;
 }
 
 function teardown(elem, iterating = false) {
@@ -148,7 +148,7 @@ function teardown(elem, iterating = false) {
     var end = elem.$end;
     elem = elem.$frag;
   }
-  if (elem.$fx) {
+  if (elem.$fx !== undefined) {
     shallowTeardown(elem);
     if (end) {
       if (iterating) return;
@@ -252,7 +252,6 @@ export function show(props) {
     prevElem = newElem;
     prevIndex = currIndex;
   }, false, true);
-
   return prevElem;
 }
 

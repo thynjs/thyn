@@ -1,4 +1,4 @@
-import { currentEffects } from "./element.js";
+import { collectEffect } from "./element.js";
 
 let currentEffect: any;
 
@@ -135,7 +135,7 @@ export function $effect(fn: EffectFn["run"], stat?: boolean, mv?: boolean) {
   currentEffect = effectFn;
   runEffectFn(effectFn);
   currentEffect = prev;
-  currentEffects?.push(effectFn);
+  collectEffect(effectFn);
   return effectFn;
 }
 
