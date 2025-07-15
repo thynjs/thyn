@@ -18,7 +18,7 @@ function scheduleEffect(effectFn: EffectFn) {
           runEffectFn(ef);
           currentEffect = prev;
         } else {
-          runEffectFn(ef);
+          ef();
         }
       }
       pendingEffects.length = 0;
@@ -106,7 +106,7 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
 }
 
 function runEffectFn(effectFn: EffectFn) {
-  const td = effectFn.run();
+  const td = effectFn();
   if (td) {
     if (effectFn.td) {
       effectFn.td.push(td);
@@ -116,27 +116,27 @@ function runEffectFn(effectFn: EffectFn) {
   }
 }
 
-interface EffectFn {
-  run: () => (() => void) | void;
+type EffectFn = (() => (() => void) | void) & {
   deps: Set<any>;
   mv?: boolean;
   dyn?: boolean;
   td?: (() => void)[];
 }
 
-export function $effect(fn: EffectFn["run"], stat?: boolean, mv?: boolean) {
-  const effectFn: EffectFn = {
-    run: fn,
-    deps: new Set(),
-  };
-  if (!stat) effectFn.dyn = true;
-  if (mv) effectFn.mv = true;
+export function $effect(fn: (() => (() => void) | void) & any, stat?: boolean, mv?: boolean) {
+  fn.deps = new Set();
+  if (mv) fn.mv = true;
   const prev = currentEffect;
-  currentEffect = effectFn;
-  runEffectFn(effectFn);
+  currentEffect = fn;
+  if (stat) {
+    fn();
+  } else {
+    fn.dyn = true;
+    runEffectFn(fn);
+  }
   currentEffect = prev;
-  collectEffect(effectFn);
-  return effectFn;
+  collectEffect(fn);
+  return fn;
 }
 
 export function cleanup(effectFn: EffectFn) {
