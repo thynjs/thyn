@@ -134,8 +134,7 @@ function shallowTeardown(elem) {
   let current = elem.$fx;
   let prev;
   while (current) {
-    cleanup(current);
-    current.td = null;
+    cleanup(current, true);
     prev = current;
     current = current.next;
     prev.next = undefined;
