@@ -40,7 +40,7 @@ export function $signal<T>(value: T): Signal<T> {
     if (!args.length) {
       if (currentEffect) {
         subscribers.add(currentEffect);
-        currentEffect.deps.add(subscribers);
+        currentEffect.deps.push(subscribers);
       }
       return value;
     }
@@ -86,10 +86,9 @@ export function $compare<T>(fn: () => T): (value: T) => boolean {
       let subs = map.get(value);
       if (!subs) map.set(value, subs = new Set());
       subs.add(currentEffect);
-      currentEffect.deps.add(subs);
-
+      const f = currentEffect;
       const teardownFn = () => {
-        subs.delete(currentEffect);
+        subs.delete(f);
         if (subs.size === 0) {
           map.delete(value);
         }
@@ -117,14 +116,14 @@ function runEffectFn(effectFn: EffectFn) {
 }
 
 type EffectFn = (() => (() => void) | void) & {
-  deps: Set<any>;
+  deps: any[];
   mv?: boolean;
   dyn?: boolean;
   td?: (() => void)[];
 }
 
 export function $effect(fn: (() => (() => void) | void) & any, stat?: boolean, mv?: boolean) {
-  fn.deps = new Set();
+  fn.deps = [];
   if (mv) fn.mv = true;
   const prev = currentEffect;
   currentEffect = fn;
@@ -143,6 +142,6 @@ export function cleanup(effectFn: EffectFn) {
   for (const subs of effectFn.deps) {
     subs.delete(effectFn);
   }
-  effectFn.deps.clear();
+  effectFn.deps.length = 0;
   if (effectFn.td) for (const f of effectFn.td) f();
 }
