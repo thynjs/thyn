@@ -259,7 +259,7 @@ export function terminalList(props) {
 }
 
 export function list(props, terminal = false) {
-  const teardownNode = terminal ? (e: any) => e.$fx && shallowTeardown(e) : teardown;
+  const teardownNode = terminal ? shallowTeardown : teardown;
   let parent;
   let outlet = document.createDocumentFragment();
   let prevItems;
@@ -288,9 +288,11 @@ export function list(props, terminal = false) {
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     isolated = !startBookend.previousSibling && !endBookend.nextSibling;
+    const childNodes = Array.from(childNodeList);
+    const offset = childNodes.indexOf(startBookend) + 1;
     if (!newLength) {
-      const end = childNodeList.length - 1;
       if (isolated) {
+        const end = childNodeList.length - 1;
         for (let i = 1; i < end; i++) {
           teardownNode(childNodeList[i]);
         }
@@ -299,7 +301,8 @@ export function list(props, terminal = false) {
         parent.appendChild(endBookend);
       } else {
         const removalQueue = [];
-        for (let i = 1; i < end; i++) {
+        const end = prevItems.length + 1;
+        for (let i = offset; i < end; i++) {
           const ch = childNodeList[i];
           teardownNode(ch);
           removalQueue.push(ch);
@@ -321,8 +324,6 @@ export function list(props, terminal = false) {
       return;
     }
 
-    const childNodes = Array.from(childNodeList);
-    const offset = childNodes.indexOf(startBookend) + 1;
     if (start < 0) {
       for (let i = nextItems.length; i < oldLength; i++) {
         const e = childNodes[offset + --oldLength];
@@ -441,155 +442,168 @@ export function list(props, terminal = false) {
 }
 
 export function isolatedTerminalList(props) {
-    let parent;
-    let outlet = document.createDocumentFragment();
-    const placeholder = document.createComment("");
-    let prevItems;
-    const render = props.render;
-    staticEffect(() => {
-        parent ??= placeholder.parentNode;
-        if (!parent) {
-            prevItems = props.items();
-            outlet.append(placeholder, ...prevItems.map(render));
-            return;
-        } else {
-            placeholder.remove();
+  let parent;
+  let outlet = document.createDocumentFragment();
+  let prevItems;
+  const startBookend = document.createComment("") as any;
+  const endBookend = document.createComment("") as any;
+  startBookend.$frag = outlet;
+  startBookend.$end = endBookend;
+  const render = props.render;
+
+  staticEffect(() => {
+    parent = startBookend.parentNode;
+    if (!parent) {
+      prevItems = props.items();
+      outlet.append(startBookend, ...prevItems.map(render), endBookend);
+      return;
+    }
+    let nextItems = props.items();
+    let newLength = nextItems.length;
+    let oldLength = prevItems.length;
+    if (!oldLength && newLength) {
+      endBookend.before(...nextItems.map(render))
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+    const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
+    const childNodes = Array.from(childNodeList);
+    if (!newLength) {
+      const end = childNodeList.length - 1;
+      for (let i = 1; i < end; i++) {
+        shallowTeardown(childNodeList[i]);
+      }
+      parent.textContent = "";
+      parent.appendChild(startBookend);
+      parent.appendChild(endBookend);
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+
+    let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
+    if (start === oldLength) {
+      endBookend.before(...nextItems.slice(start).map(render));
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+
+    if (start < 0) {
+      for (let i = nextItems.length; i < oldLength; i++) {
+        const e = childNodes[1 + --oldLength];
+        shallowTeardown(e);
+        e.remove();
+      }
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+
+    if (start >= newLength) {
+      while (start < oldLength) {
+        const e = childNodes[1 + --oldLength];
+        shallowTeardown(e);
+        e.remove();
+      }
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+
+    // suffix
+    for (
+      oldLength--, newLength--;
+      newLength > start &&
+      oldLength >= start &&
+      nextItems[newLength] === prevItems[oldLength];
+      oldLength--, newLength--
+    );
+
+    const nextKeys = new Set(nextItems);
+    const removalQueue = [];
+    for (let i = start; i <= oldLength; i++) {
+      if (!nextKeys.has(prevItems[i])) {
+        const ch = childNodes[i + 1];
+        shallowTeardown(ch);
+        removalQueue.push(ch);
+        childNodes[i + 1] = null;
+      }
+    }
+    if (removalQueue.length === prevItems.length) {
+      parent.textContent = "";
+      parent.append(startBookend, ...nextItems.map(render), endBookend);
+      prevItems = nextItems;
+      nextItems = null;
+      return;
+    }
+    for (const e of removalQueue) {
+      e.remove();
+    }
+    let keyMap = new Map();
+    for (let i = start; i <= oldLength; i++) {
+      if (
+        childNodes[i + 1] &&
+        (!nextItems[i] ||
+          prevItems[i] !== nextItems[i])
+      ) {
+        keyMap.set(prevItems[i], {
+          el: childNodes[i + 1],
+          item: prevItems[i],
+        });
+      }
+    }
+    if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
+      const lastOrdered = childNodes[start];
+      const set = [];
+      for (let i = start; i <= newLength; i++) {
+        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + 1]);
+      }
+      lastOrdered.after(...set);
+      prevItems = nextItems;
+      keyMap = null;
+      nextItems = null;
+      return;
+    }
+
+    while (start <= newLength) {
+      const newChd = nextItems[start];
+      const oldChd = prevItems[start];
+      if (newChd === oldChd) {
+        start++;
+        continue;
+      }
+      if (oldChd === undefined) {
+        parent.insertBefore(render(newChd), endBookend);
+        start++;
+        continue;
+      }
+      const mappedOld = keyMap.get(newChd);
+      if (mappedOld) {
+        const oldDom = childNodeList[start + 1];
+        const { el, item } = mappedOld;
+        if (oldDom !== el) {
+          const tmp = el.nextSibling;
+          parent.insertBefore(el, oldDom);
+          parent.insertBefore(oldDom, tmp);
+        } else if (item !== newChd) {
+          replaceWith(newChd, el, render);
         }
-        let nextItems = props.items();
-        let newLength = nextItems.length;
-        let oldLength = prevItems.length;
-        if (!oldLength && newLength) {
-            parent.append(...nextItems.map(render));
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
-        if (!newLength) {
-            const end = childNodeList.length - 1;
-            for (let i = 0; i <= end; i++) {
-                shallowTeardown(childNodeList[i]);
-            }
-            parent.textContent = "";
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
-        if (start === oldLength) {
-            parent.append(...nextItems.slice(start).map(render));
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        const childNodes = Array.from(childNodeList);
-        if (start < 0) {
-            for (let i = nextItems.length; i < oldLength; i++) {
-                const e = childNodes[--oldLength];
-                shallowTeardown(e);
-                e.remove();
-            }
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        if (start >= newLength) {
-            while (start < oldLength) {
-                const e = childNodes[--oldLength];
-                shallowTeardown(e);
-                e.remove();
-            }
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        // suffix
-        for (oldLength--, newLength--; newLength > start &&
-            oldLength >= start &&
-            nextItems[newLength] === prevItems[oldLength]; oldLength--, newLength--)
-            ;
-        const nextKeys = new Set(nextItems);
-        const removalQueue = [];
-        for (let i = start; i <= oldLength; i++) {
-            if (!nextKeys.has(prevItems[i])) {
-                const ch = childNodes[i];
-                shallowTeardown(ch);
-                removalQueue.push(ch);
-                childNodes[i] = null;
-            }
-        }
-        if (removalQueue.length === prevItems.length) {
-            parent.textContent = "";
-            parent.append(...nextItems.map(render));
-            prevItems = nextItems;
-            nextItems = null;
-            return;
-        }
-        for (const e of removalQueue) {
-            e.remove();
-        }
-        let keyMap = new Map();
-        for (let i = start; i <= oldLength; i++) {
-            if (childNodes[i] &&
-                (!nextItems[i] ||
-                    prevItems[i] !== nextItems[i])) {
-                keyMap.set(prevItems[i], {
-                    el: childNodes[i],
-                    item: prevItems[i],
-                });
-            }
-        }
-        if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-            const lastOrdered = childNodes[start - 1];
-            const set = [];
-            for (let i = start; i <= newLength; i++) {
-                set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i]);
-            }
-            lastOrdered.after(...set);
-            prevItems = nextItems;
-            keyMap = null;
-            nextItems = null;
-            return;
-        }
-        while (start <= newLength) {
-            const newChd = nextItems[start];
-            const oldChd = prevItems[start];
-            if (newChd === oldChd) {
-                start++;
-                continue;
-            }
-            if (oldChd === undefined) {
-                parent.appendChild(render(newChd));
-                start++;
-                continue;
-            }
-            const mappedOld = keyMap.get(newChd);
-            if (mappedOld) {
-                const oldDom = childNodeList[start];
-                const { el, item } = mappedOld;
-                if (oldDom !== el) {
-                    const tmp = el.nextSibling;
-                    parent.insertBefore(el, oldDom);
-                    parent.insertBefore(oldDom, tmp);
-                }
-                else if (item !== newChd) {
-                    replaceWith(newChd, el, render);
-                }
-                keyMap.delete(newChd);
-            }
-            else if (oldChd !== newChd) {
-                parent.insertBefore(render(newChd), childNodeList[start]);
-            }
-            start++;
-        }
-        for (const { el } of keyMap.values()) {
-            shallowTeardown(el);
-            el.remove();
-        }
-        keyMap = null;
-        prevItems = nextItems;
-        nextItems = null;
-    });
-    return outlet;
+        keyMap.delete(newChd);
+      } else if (oldChd !== newChd) {
+        parent.insertBefore(render(newChd), childNodeList[start + 1]);
+      }
+      start++;
+    }
+    for (const { el } of keyMap.values()) {
+      shallowTeardown(el);
+      el.remove();
+    }
+    keyMap = null;
+    prevItems = nextItems;
+    nextItems = null;
+  });
+  return outlet;
 }
 
