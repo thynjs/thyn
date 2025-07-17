@@ -12,5 +12,6 @@ export {
   setReactiveProperty,
   show,
   terminalList,
+  isolatedTerminalList,
 } from "./element.js";
 export { $compare, staticEffect, $effect, $signal, type Signal } from "./signals.js";
