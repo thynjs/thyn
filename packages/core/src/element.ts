@@ -1,40 +1,33 @@
-import { $effect, cleanup } from "./signals.js";
+import { $effect, cleanup, staticEffect } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());
 }
 
-// export let currentEffects: { head: any; tail: any } | undefined;
 let collectingHead;
-let collectingTail;
 
 export function collectEffect(effectFn) {
   if (collectingHead) {
-    collectingTail.next = effectFn;
-    collectingTail = effectFn;
-  } else {
-    collectingHead = effectFn;
-    collectingTail = effectFn;
+    effectFn.next = collectingHead;
   }
+  collectingHead = effectFn;
 }
 
 export function createReactiveTextNode(v) {
   let n;
-  $effect(() => {
+  staticEffect(() => {
     if (n) {
       n.nodeValue = v();
     } else {
       n = document.createTextNode(v());
     }
-  }, true);
+  });
   return n;
 }
 
 export function component(name, props?: any) {
   const prevHead = collectingHead;
-  const prevTail = collectingTail;
   collectingHead = null;
-  collectingTail = null;
   const e = name(props);
   const existing = e.$fx;
   
@@ -63,7 +56,6 @@ export function component(name, props?: any) {
   }
   
   collectingHead = prevHead;
-  collectingTail = prevTail;
   return e;
 }
 
@@ -79,7 +71,7 @@ export function setReactiveAttribute(el, key, val) {
   let ran;
   return addEffect(
     el,
-    $effect(() => {
+    staticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) el.removeAttribute(key);
@@ -88,14 +80,14 @@ export function setReactiveAttribute(el, key, val) {
       }
       if (v !== undefined) el.setAttribute(key, val());
       ran = true;
-    }, true),
+    }),
   );
 }
 export function setReactiveProperty(el, key, val) {
   let ran = true;
   return addEffect(
     el,
-    $effect(() => {
+    staticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) delete el[key];
@@ -104,7 +96,7 @@ export function setReactiveProperty(el, key, val) {
       }
       if (v !== undefined) el[key] = v;
       ran = true;
-    }, true),
+    }),
   );
 }
 
@@ -134,7 +126,8 @@ function shallowTeardown(elem) {
   let current = elem.$fx;
   let prev;
   while (current) {
-    cleanup(current, true);
+    cleanup(current);
+    current.td = null;
     prev = current;
     current = current.next;
     prev.next = undefined;
@@ -209,7 +202,7 @@ export function show(props) {
   let prevIndex = -1;
   let prevElem: (Element | Comment) & { $fx?: any };
 
-  $effect(() => {
+  const eff = $effect(() => {
     const currIndex = props.findIndex((c) => !c.if || c.if());
     if (currIndex === prevIndex) {
       if (!prevElem) {
@@ -251,7 +244,8 @@ export function show(props) {
     }
     prevElem = newElem;
     prevIndex = currIndex;
-  }, false, true);
+  });
+  eff.mv = true;
   return prevElem;
 }
 
@@ -276,7 +270,7 @@ export function list(props, terminal = false) {
   const render = props.render;
   let isolated;
 
-  $effect(() => {
+  staticEffect(() => {
     parent = startBookend.parentNode;
     if (!parent) {
       prevItems = props.items();
@@ -446,6 +440,6 @@ export function list(props, terminal = false) {
     keyMap = null;
     prevItems = nextItems;
     nextItems = null;
-  }, true);
+  });
   return outlet;
 }

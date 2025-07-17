@@ -280,9 +280,9 @@ function generateTextContentTemplate(
       }
     }
     const stat = `const ${root} = document.createTextNode("");\n`;
-    const dynamic = `$effect(() => {
+    const dynamic = `__THYN__CORE__.staticEffect(() => {
       ${textNode}.nodeValue = ${fn}();
-    }, true);\n`;
+    });\n`;
     return {
       static: stat,
       dynamic,
@@ -404,20 +404,20 @@ function makeTemplate(
       if (key === "class") {
         const prev = makeVariable();
         code += `let ${prev};\n`;
-        code += `$effect(() => {
+        code += `__THYN__CORE__.staticEffect(() => {
             const val = ${val.raw};
             if (val !== ${prev}) {
               if (val) ${dynRoot}.className = val;
               else ${dynRoot}.removeAttribute("class")
               ${prev} = val;
             }
-          }, true);\n`;
+          });\n`;
         continue;
       }
       if (key.includes("-")) {
         const ran = makeVariable();
         code += `let ${ran} = false;\n`;
-        code += `$effect(() => {
+        code += `__THYN__CORE__.staticEffect(() => {
             const val = ${val.raw};
             if (val === undefined) {
               if (${ran} && ${dynRoot}.hasAttribute("${key}")) {
@@ -427,9 +427,9 @@ function makeTemplate(
               ${dynRoot}.setAttribute("${key}", val);\n
             }
             ${ran} = true;
-          }, true);\n`;
+          });\n`;
       } else {
-        code += `$effect(() => {
+        code += `__THYN__CORE__.staticEffect(() => {
           const val = ${val.raw};
           if (val === undefined) {
             if (${dynRoot}.${key}) {
@@ -438,7 +438,7 @@ function makeTemplate(
           } else {
             ${dynRoot}.${key} = val;\n
           }
-        }, true);\n`;
+        });\n`;
       }
       continue;
     }

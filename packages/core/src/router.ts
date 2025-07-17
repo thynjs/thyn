@@ -1,5 +1,5 @@
 import { component, show } from "./element.js";
-import { $signal, $effect } from "./signals.js";
+import { $signal, staticEffect } from "./signals.js";
 
 const params = $signal({} as any);
 
@@ -30,7 +30,7 @@ export function Router({ routes }: { routes: Route[] }) {
     return compiledRoute;
   });
 
-  $effect(() => {
+  staticEffect(() => {
     const pn = router.path();
     if (pn !== location.pathname) {
       history.pushState({}, "", pn);
@@ -49,7 +49,7 @@ export function Router({ routes }: { routes: Route[] }) {
     };
     current(rt);
     params(ps);
-  }, true);
+  });
 
   return component(
     show,

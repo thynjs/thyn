@@ -34,13 +34,13 @@ export type Signal<T> = {
 };
 
 export function $signal<T>(value: T): Signal<T> {
-  const subscribers = new Set<any>();
+  const subs = new Set<any>();
 
   return (...args: [T] | [(prev: T) => T] | []) => {
     if (!args.length) {
       if (currentEffect) {
-        subscribers.add(currentEffect);
-        currentEffect.td.push(f => f && subscribers.delete(currentEffect));
+        subs.add(currentEffect);
+        currentEffect.td.push(subs);
       }
       return value;
     }
@@ -52,88 +52,89 @@ export function $signal<T>(value: T): Signal<T> {
 
     if (newValue !== value) {
       value = newValue;
-      for (const sub of subscribers) {
+      for (const sub of subs) {
         scheduleEffect(sub);
       }
     }
   };
 }
 
+class CompareSet {
+  constructor(private m, private k, private s = new Set<EffectFn>()) { }
+  
+  add(fn: EffectFn) {
+    this.s.add(fn);
+  }
+  
+  delete(fn: EffectFn) {
+    this.s.delete(fn);
+    if (!this.s.size) {
+      this.m.delete(this.k);
+    }
+  }
+
+  run() {
+    for (const sub of this.s) scheduleEffect(sub);
+  }
+}
+
 export function $compare<T>(fn: () => T): (value: T) => boolean {
-  const map = new Map<T, Set<any>>();
+  const map = new Map<T, CompareSet>();
   let current: T = fn();
 
-  $effect(() => {
+  staticEffect(() => {
     const newValue = fn();
     if (newValue === current) return;
-
-    const prevSubs = map.get(current);
-    const nextSubs = map.get(newValue);
-
+    map.get(current)?.run();
+    map.get(newValue)?.run();
     current = newValue;
-
-    // Only notify subscribers for new and old values
-    if (prevSubs) {
-      for (const sub of prevSubs) scheduleEffect(sub);
-    }
-    if (nextSubs) {
-      for (const sub of nextSubs) scheduleEffect(sub);
-    }
-  }, true);
+  });
 
   return (value: T) => {
     if (currentEffect) {
       let subs = map.get(value);
-      if (!subs) map.set(value, subs = new Set());
+      if (!subs) map.set(value, subs = new CompareSet(map, value));
       subs.add(currentEffect);
-      const f = currentEffect;
-      const teardownFn = () => {
-        subs.delete(f);
-        if (subs.size === 0) {
-          map.delete(value);
-        }
-      };
-
-      if (currentEffect.td) {
-        currentEffect.td.push(teardownFn);
-      } else {
-        currentEffect.td = [teardownFn];
-      }
+      currentEffect.td.push(subs);
     }
     return current === value;
   };
 }
 
-function runEffectFn(effectFn: EffectFn) {
-  const td = effectFn();
+function runEffectFn(ef: EffectFn) {
+  const td = ef();
   if (td) {
-    effectFn.td.push(td);
+    ef.td.push(td);
   }
 }
 
 type EffectFn = (() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
-  td: ((final: boolean) => void)[];
+  td: ((() => void) | { delete: (v: any) => void })[];
 }
 
-export function $effect(fn: (() => (() => void) | void) & any, stat?: boolean, mv?: boolean) {
+export function $effect(fn: (() => (() => void) | void) & any) {
   fn.td = [];
-  if (mv) fn.mv = true;
   const prev = currentEffect;
   currentEffect = fn;
-  if (stat) {
-    fn();
-  } else {
-    fn.dyn = true;
-    runEffectFn(fn);
-  }
+  fn.dyn = true;
+  runEffectFn(fn);
   currentEffect = prev;
   collectEffect(fn);
   return fn;
 }
 
-export function cleanup(effectFn: EffectFn, final?: boolean) {
-  for (const f of effectFn.td) f(final);
-  if (final) effectFn.td = null;
+export function staticEffect(fn: (() => (() => void) | void) & any) {
+  fn.td = [];
+  const prev = currentEffect;
+  currentEffect = fn;
+  fn();
+  currentEffect = prev;
+  collectEffect(fn);
+  return fn;
+}
+
+export function cleanup(ef: EffectFn) {
+  for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
 }

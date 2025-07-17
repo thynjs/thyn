@@ -13,4 +13,4 @@ export {
   show,
   terminalList,
 } from "./element.js";
-export { $compare, $effect, $signal, type Signal } from "./signals.js";
+export { $compare, staticEffect, $effect, $signal, type Signal } from "./signals.js";
