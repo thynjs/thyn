@@ -268,7 +268,6 @@ export function list(props, terminal = false) {
   startBookend.$frag = outlet;
   startBookend.$end = endBookend;
   const render = props.render;
-  let isolated;
 
   staticEffect(() => {
     parent = startBookend.parentNode;
@@ -287,29 +286,18 @@ export function list(props, terminal = false) {
       return;
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
-    isolated = !startBookend.previousSibling && !endBookend.nextSibling;
     const childNodes = Array.from(childNodeList);
     const offset = childNodes.indexOf(startBookend) + 1;
     if (!newLength) {
-      if (isolated) {
-        const end = childNodeList.length - 1;
-        for (let i = 1; i < end; i++) {
-          teardownNode(childNodeList[i]);
-        }
-        parent.textContent = "";
-        parent.appendChild(startBookend);
-        parent.appendChild(endBookend);
-      } else {
-        const removalQueue = [];
-        const end = prevItems.length + 1;
-        for (let i = offset; i < end; i++) {
-          const ch = childNodeList[i];
-          teardownNode(ch);
-          removalQueue.push(ch);
-        }
-        for (const ch of removalQueue) {
-          remove(ch);
-        }
+      const removalQueue = [];
+      const end = prevItems.length + 1;
+      for (let i = offset; i < end; i++) {
+        const ch = childNodeList[i];
+        teardownNode(ch);
+        removalQueue.push(ch);
+      }
+      for (const ch of removalQueue) {
+        remove(ch);
       }
       prevItems = nextItems;
       nextItems = null;
@@ -365,15 +353,13 @@ export function list(props, terminal = false) {
         childNodes[i + offset] = null;
       }
     }
-    if (isolated && removalQueue.length === prevItems.length) {
-      parent.textContent = "";
-      parent.append(startBookend, ...nextItems.map(render), endBookend);
-      prevItems = nextItems;
-      nextItems = null;
-      return;
-    }
     for (const e of removalQueue) {
       remove(e);
+    }
+    if (oldLength - start === removalQueue.length) {
+        prevItems = nextItems;
+        nextItems = null;
+        return;
     }
     let keyMap = new Map();
     for (let i = start; i <= oldLength; i++) {
@@ -475,8 +461,7 @@ export function isolatedTerminalList(props) {
         shallowTeardown(childNodeList[i]);
       }
       parent.textContent = "";
-      parent.appendChild(startBookend);
-      parent.appendChild(endBookend);
+      parent.append(startBookend, endBookend);
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -540,6 +525,11 @@ export function isolatedTerminalList(props) {
     }
     for (const e of removalQueue) {
       e.remove();
+    }
+    if (oldLength - start === removalQueue.length) {
+        prevItems = nextItems;
+        nextItems = null;
+        return;
     }
     let keyMap = new Map();
     for (let i = start; i <= oldLength; i++) {
