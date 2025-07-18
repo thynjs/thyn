@@ -33,36 +33,48 @@ export type Signal<T> = {
   (updater: (prev: T) => T): void;
 };
 
-export function $signal<T>(value: T): Signal<T> {
-  const subs = new Set<any>();
+class SignalImpl<T> {
+  subs = new Set<any>();
 
-  return (...args: [T] | [(prev: T) => T] | []) => {
-    if (!args.length) {
-      if (currentEffect) {
-        subs.add(currentEffect);
-        if (!currentEffect.td) {
-          currentEffect.td = subs;
-        } else if (Array.isArray(currentEffect.td)) {
-          currentEffect.td.push(subs);
-        } else {
-          currentEffect.td = [currentEffect.td, subs];          
-        }
+  constructor(public value: T) {}
+
+  get(): T {
+    if (currentEffect) {
+      this.subs.add(currentEffect);
+      const td = currentEffect.td;
+      if (!td) {
+        currentEffect.td = this.subs;
+      } else if (Array.isArray(td)) {
+        td.push(this.subs);
+      } else {
+        currentEffect.td = [td, this.subs];
       }
-      return value;
     }
+    return this.value;
+  }
 
-    const action = args[0];
-    const newValue = typeof action === "function"
-      ? (action as (prev: T) => T)(value)
-      : action;
-
-    if (newValue !== value) {
-      value = newValue;
-      for (const sub of subs) {
+  set(value: T): void {
+    if (value !== this.value) {
+      this.value = value;
+      for (const sub of this.subs) {
         scheduleEffect(sub);
       }
     }
-  };
+  }
+
+  update(action: (prev: T) => T): void {
+    const value = action(this.value);
+    if (value !== this.value) {
+      this.value = value;
+      for (const sub of this.subs) {
+        scheduleEffect(sub);
+      }
+    }
+  }
+}
+
+export function $signal<T>(value: T): SignalImpl<T> {
+  return new SignalImpl(value);
 }
 
 function runEffectFn(ef: EffectFn) {
@@ -98,6 +110,7 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 }
 
 export function staticEffect(fn: (() => (() => void) | void) & any) {
+  fn.td = null;
   const prev = currentEffect;
   currentEffect = fn;
   fn();
