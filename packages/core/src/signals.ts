@@ -63,13 +63,7 @@ class SignalImpl<T> {
   }
 
   update(action: (prev: T) => T): void {
-    const value = action(this.value);
-    if (value !== this.value) {
-      this.value = value;
-      for (const sub of this.subs) {
-        scheduleEffect(sub);
-      }
-    }
+    this.set(action(this.value));
   }
 }
 
