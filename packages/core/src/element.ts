@@ -1,4 +1,4 @@
-import { $effect, arrays, staticEffect } from "./signals.js";
+import { $effect, cleanup, staticEffect } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());
@@ -126,9 +126,8 @@ function shallowTeardown(elem) {
   let current = elem.$fx;
   let prev;
   while (current) {
-    for (const f of current.td) typeof f === "function" ? f() : f.delete(current);
-    current.td.length = 0;
-    arrays.push(current.td);
+    cleanup(current);
+    current.td = null;
     prev = current;
     current = current.next;
     prev.next = undefined;

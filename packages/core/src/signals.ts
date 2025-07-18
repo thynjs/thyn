@@ -12,7 +12,7 @@ function scheduleEffect(effectFn: EffectFn) {
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
         if (ef.dyn) {
-          for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
+          cleanup(ef);
           const prev = currentEffect;
           currentEffect = ef;
           runEffectFn(ef);
@@ -40,7 +40,13 @@ export function $signal<T>(value: T): Signal<T> {
     if (!args.length) {
       if (currentEffect) {
         subs.add(currentEffect);
-        currentEffect.td.push(subs);
+        if (!currentEffect.td) {
+          currentEffect.td = subs;
+        } else if (Array.isArray(currentEffect.td)) {
+          currentEffect.td.push(subs);
+        } else {
+          currentEffect.td = [currentEffect.td, subs];          
+        }
       }
       return value;
     }
@@ -59,65 +65,29 @@ export function $signal<T>(value: T): Signal<T> {
   };
 }
 
-class CompareSet {
-  constructor(private m, private k, private s = new Set<EffectFn>()) { }
-  
-  add(fn: EffectFn) {
-    this.s.add(fn);
-  }
-  
-  delete(fn: EffectFn) {
-    this.s.delete(fn);
-    if (!this.s.size) {
-      this.m.delete(this.k);
-    }
-  }
-
-  run() {
-    for (const sub of this.s) scheduleEffect(sub);
-  }
-}
-
-export function $compare<T>(fn: () => T): (value: T) => boolean {
-  const map = new Map<T, CompareSet>();
-  let current: T = fn();
-
-  staticEffect(() => {
-    const newValue = fn();
-    if (newValue === current) return;
-    map.get(current)?.run();
-    map.get(newValue)?.run();
-    current = newValue;
-  });
-
-  return (value: T) => {
-    if (currentEffect) {
-      let subs = map.get(value);
-      if (!subs) map.set(value, subs = new CompareSet(map, value));
-      subs.add(currentEffect);
-      currentEffect.td.push(subs);
-    }
-    return current === value;
-  };
-}
-
 function runEffectFn(ef: EffectFn) {
   const td = ef();
   if (td) {
-    ef.td.push(td);
+    if (ef.td) {
+      if (Array.isArray(ef.td)) {
+        ef.td.push(td)
+      } else {
+        ef.td = [ef.td, td];
+      }
+    } else {
+      ef.td = td;
+    }
   }
 }
 
+type EffectTeardown = (() => void) | { delete: (v: any) => void };
 type EffectFn = (() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
-  td: ((() => void) | { delete: (v: any) => void })[];
+  td: EffectTeardown | EffectTeardown[];
 }
 
-export const arrays = [];
-
 export function $effect(fn: (() => (() => void) | void) & any) {
-  fn.td = arrays.pop() ?? [];
   const prev = currentEffect;
   currentEffect = fn;
   fn.dyn = true;
@@ -128,11 +98,19 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 }
 
 export function staticEffect(fn: (() => (() => void) | void) & any) {
-  fn.td = arrays.pop() ?? [];
   const prev = currentEffect;
   currentEffect = fn;
   fn();
   currentEffect = prev;
   collectEffect(fn);
   return fn;
+}
+
+export function cleanup(ef) {
+  if (!ef.td) return;
+  if (Array.isArray(ef.td)) {
+    for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
+  } else {
+    typeof ef.td === "function" ? ef.td() : ef.td.delete(ef);
+  }
 }
