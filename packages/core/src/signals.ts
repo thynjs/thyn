@@ -56,9 +56,7 @@ class SignalImpl<T> {
   set(value: T): void {
     if (value !== this.value) {
       this.value = value;
-      for (const sub of this.subs) {
-        scheduleEffect(sub);
-      }
+      this.subs.forEach(scheduleEffect);
     }
   }
 
