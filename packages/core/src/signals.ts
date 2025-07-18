@@ -12,7 +12,7 @@ function scheduleEffect(effectFn: EffectFn) {
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
         if (ef.dyn) {
-          cleanup(ef);
+          for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
           const prev = currentEffect;
           currentEffect = ef;
           runEffectFn(ef);
@@ -114,8 +114,10 @@ type EffectFn = (() => (() => void) | void) & {
   td: ((() => void) | { delete: (v: any) => void })[];
 }
 
+export const arrays = [];
+
 export function $effect(fn: (() => (() => void) | void) & any) {
-  fn.td = [];
+  fn.td = arrays.pop() ?? [];
   const prev = currentEffect;
   currentEffect = fn;
   fn.dyn = true;
@@ -126,15 +128,11 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 }
 
 export function staticEffect(fn: (() => (() => void) | void) & any) {
-  fn.td = [];
+  fn.td = arrays.pop() ?? [];
   const prev = currentEffect;
   currentEffect = fn;
   fn();
   currentEffect = prev;
   collectEffect(fn);
   return fn;
-}
-
-export function cleanup(ef: EffectFn) {
-  for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
 }

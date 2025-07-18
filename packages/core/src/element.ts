@@ -1,4 +1,4 @@
-import { $effect, cleanup, staticEffect } from "./signals.js";
+import { $effect, arrays, staticEffect } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());
@@ -126,8 +126,9 @@ function shallowTeardown(elem) {
   let current = elem.$fx;
   let prev;
   while (current) {
-    cleanup(current);
-    current.td = null;
+    for (const f of current.td) typeof f === "function" ? f() : f.delete(current);
+    current.td.length = 0;
+    arrays.push(current.td);
     prev = current;
     current = current.next;
     prev.next = undefined;
@@ -454,7 +455,6 @@ export function isolatedTerminalList(props) {
       return;
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
-    const childNodes = Array.from(childNodeList);
     if (!newLength) {
       const end = childNodeList.length - 1;
       for (let i = 1; i < end; i++) {
@@ -475,6 +475,7 @@ export function isolatedTerminalList(props) {
       return;
     }
 
+    let childNodes = Array.from(childNodeList);
     if (start < 0) {
       for (let i = nextItems.length; i < oldLength; i++) {
         const e = childNodes[1 + --oldLength];
@@ -483,6 +484,7 @@ export function isolatedTerminalList(props) {
       }
       prevItems = nextItems;
       nextItems = null;
+      childNodes = null;
       return;
     }
 
@@ -494,6 +496,7 @@ export function isolatedTerminalList(props) {
       }
       prevItems = nextItems;
       nextItems = null;
+      childNodes = null;
       return;
     }
 
@@ -521,6 +524,7 @@ export function isolatedTerminalList(props) {
       parent.append(startBookend, ...nextItems.map(render), endBookend);
       prevItems = nextItems;
       nextItems = null;
+      childNodes = null;
       return;
     }
     for (const e of removalQueue) {
@@ -529,6 +533,7 @@ export function isolatedTerminalList(props) {
     if (oldLength - start === removalQueue.length) {
         prevItems = nextItems;
         nextItems = null;
+        childNodes = null;
         return;
     }
     let keyMap = new Map();
@@ -554,6 +559,7 @@ export function isolatedTerminalList(props) {
       prevItems = nextItems;
       keyMap = null;
       nextItems = null;
+      childNodes = null;
       return;
     }
 
@@ -593,6 +599,7 @@ export function isolatedTerminalList(props) {
     keyMap = null;
     prevItems = nextItems;
     nextItems = null;
+    childNodes = null;
   });
   return outlet;
 }
