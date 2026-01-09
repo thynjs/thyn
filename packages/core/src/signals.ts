@@ -6,11 +6,14 @@ let isBatching: boolean | undefined;
 const pendingEffects = [];
 
 function scheduleEffect(effectFn: EffectFn) {
+  if (effectFn.batched) return;
+  effectFn.batched = true;
   pendingEffects.push(effectFn);
   if (!isBatching) {
     isBatching = true;
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
+        ef.batched = false;
         if (ef.dyn) {
           cleanup(ef);
           const prev = currentEffect;
@@ -89,6 +92,7 @@ type EffectFn = (() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
   td: EffectTeardown | EffectTeardown[];
+  batched?: boolean;
 }
 
 export function $effect(fn: (() => (() => void) | void) & any) {

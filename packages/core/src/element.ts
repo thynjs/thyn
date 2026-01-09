@@ -285,14 +285,18 @@ export function list(props, terminal = false) {
       nextItems = null;
       return;
     }
-    const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
-    const childNodes = Array.from(childNodeList);
-    const offset = childNodes.indexOf(startBookend) + 1;
+    const childNodes = [];
+    let ptr = startBookend.nextSibling;
+    while (ptr !== endBookend) {
+      childNodes.push(ptr);
+      ptr = ptr.nextSibling;
+    }
+    const offset = 0;
     if (!newLength) {
       const removalQueue = [];
       const end = prevItems.length + offset;
       for (let i = offset; i < end; i++) {
-        const ch = childNodeList[i];
+        const ch = childNodes[i];
         teardownNode(ch);
         removalQueue.push(ch);
       }
@@ -375,7 +379,7 @@ export function list(props, terminal = false) {
       }
     }
     if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-      const lastOrdered = childNodes[start + offset - 1];
+      const lastOrdered = start > 0 ? childNodes[start + offset - 1] : startBookend;
       const set = [];
       for (let i = start; i <= newLength; i++) {
         set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + offset]);
@@ -387,11 +391,16 @@ export function list(props, terminal = false) {
       return;
     }
 
+    let cursor = startBookend.nextSibling;
+    for (let i = 0; i < start; i++) {
+      cursor = cursor.nextSibling;
+    }
     while (start <= newLength) {
       const newChd = nextItems[start];
       const oldChd = prevItems[start];
       if (newChd === oldChd) {
         start++;
+        cursor = cursor.nextSibling;
         continue;
       }
       if (oldChd === undefined) {
@@ -401,18 +410,23 @@ export function list(props, terminal = false) {
       }
       const mappedOld = keyMap.get(newChd);
       if (mappedOld) {
-        const oldDom = childNodeList[start + offset];
+        const oldDom = cursor;
         const { el, item } = mappedOld;
         if (oldDom !== el) {
           const tmp = el.nextSibling;
           parent.insertBefore(el, oldDom);
           parent.insertBefore(oldDom, tmp);
+          cursor = el.nextSibling;
         } else if (item !== newChd) {
+          const next = el.nextSibling;
           replaceWith(newChd, el, render);
+          cursor = next;
+        } else {
+          cursor = el.nextSibling;
         }
         keyMap.delete(newChd);
       } else if (oldChd !== newChd) {
-        parent.insertBefore(render(newChd), childNodeList[start + offset]);
+        parent.insertBefore(render(newChd), cursor);
       }
       start++;
     }
