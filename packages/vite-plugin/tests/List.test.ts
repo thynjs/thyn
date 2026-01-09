@@ -13,9 +13,9 @@ describe("List component", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(root.textContent).toBe("startend");
-    // root.click();
-    // await Promise.resolve();
-    // await Promise.resolve();
-    // expect(root.textContent).toBe("start0end");
+    root.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(root.textContent).toBe("start0end");
   });
 });

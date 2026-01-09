@@ -2,7 +2,7 @@
   const show = $signal(true);
 </script>
 
-<div onclick={() => show(c => !c)}>
-  <p #if={show()}>foo</p>
+<div onclick={() => show.update(c => !c)}>
+  <p #if={show.get()}>foo</p>
   <p #else>bar</p>
 </div>
