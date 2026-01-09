@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { $signal, $effect } from "../src";
+import { describe, expect, it } from "vitest";
+import { $effect, $signal } from "../src";
 import { wait } from "./utils";
 
 describe("runs effect", () => {
@@ -9,9 +9,9 @@ describe("runs effect", () => {
     const tdRef = { val: 0 };
     const root = (() => {
       const div = document.createElement("div");
-      $effect(() => {div.textContent = on() ? "on" : "off"}, true);
+      $effect(() => { div.textContent = on.get() ? "on" : "off" });
       $effect(() => {
-        on();
+        on.get();
         runRef.val++;
         return () => {
           tdRef.val++;
@@ -22,7 +22,7 @@ describe("runs effect", () => {
     expect(root.textContent).toBe("on");
     expect(runRef.val).toBe(1);
     expect(tdRef.val).toBe(0);
-    on(false);
+    on.set(false);
     await wait();
     expect(root.textContent).toBe("off");
     expect(runRef.val).toBe(2);

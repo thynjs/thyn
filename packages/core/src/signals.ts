@@ -28,15 +28,15 @@ function scheduleEffect(effectFn: EffectFn) {
 }
 
 export type Signal<T> = {
-  (): T;
-  (value: T): void;
-  (updater: (prev: T) => T): void;
+  get(): T;
+  set(value: T): void;
+  update(updater: (prev: T) => T): void;
 };
 
 class SignalImpl<T> {
   subs = new Set<any>();
 
-  constructor(public value: T) {}
+  constructor(public value: T) { }
 
   get(): T {
     if (currentEffect) {

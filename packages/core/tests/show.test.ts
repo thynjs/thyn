@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { $signal, show } from "../src";
 import { wait } from "./utils";
 
@@ -12,11 +12,11 @@ describe("show", () => {
   it("if else", async () => {
     const on = $signal(true);
     const root = makeShow([
-      { if: on, then: () => document.createTextNode("on") },
+      { if: () => on.get(), then: () => document.createTextNode("on") },
       { then: () => document.createTextNode("off") },
     ]);
     expect(root.textContent).toBe("on");
-    on(false);
+    on.set(false);
     await wait();
     expect(root.textContent).toBe("off");
   });
@@ -24,11 +24,11 @@ describe("show", () => {
   it("if else-if", async () => {
     const on = $signal(true);
     const root = makeShow([
-      { if: on, then: () => document.createTextNode("on") },
-      { if: () => !on(), then: () => document.createTextNode("off") },
+      { if: () => on.get(), then: () => document.createTextNode("on") },
+      { if: () => !on.get(), then: () => document.createTextNode("off") },
     ]);
     expect(root.textContent).toBe("on");
-    on(false);
+    on.set(false);
     await wait();
     expect(root.textContent).toBe("off");
   });
@@ -36,15 +36,15 @@ describe("show", () => {
   it("if else-if else", async () => {
     const on = $signal("a");
     const root = makeShow([
-      { if: () => on() === "a", then: () => document.createTextNode("a") },
-      { if: () => on() === "b", then: () => document.createTextNode("b") },
+      { if: () => on.get() === "a", then: () => document.createTextNode("a") },
+      { if: () => on.get() === "b", then: () => document.createTextNode("b") },
       { then: () => document.createTextNode("c") },
     ]);
     expect(root.textContent).toBe("a");
-    on("b");
+    on.set("b");
     await wait();
     expect(root.textContent).toBe("b");
-    on("");
+    on.set("");
     await wait();
     expect(root.textContent).toBe("c");
   });
@@ -53,13 +53,13 @@ describe("show", () => {
     const foo = $signal("a");
     const bar = $signal("b");
     const root = makeShow([
-      { if: () => foo() === "a", then: () => document.createTextNode("foo") },
-      { if: () => bar() === "a", then: () => document.createTextNode("bar") },
+      { if: () => foo.get() === "a", then: () => document.createTextNode("foo") },
+      { if: () => bar.get() === "a", then: () => document.createTextNode("bar") },
       { then: () => document.createTextNode("c") },
     ]);
     expect(root.textContent).toBe("foo");
-    foo("b")
-    bar("a");
+    foo.set("b")
+    bar.set("a");
     await wait();
     expect(root.textContent).toBe("bar");
   });

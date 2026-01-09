@@ -1,8 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { Link, Router, router } from "../src/router";
-import { wait } from "./utils";
+import { describe, expect, it } from "vitest";
 import { component, createReactiveTextNode } from "../src/element";
-import { $effect, $signal } from "../src";
+import { Router, router } from "../src/router";
+import { wait } from "./utils";
 
 function Div(it: string) {
   return () => {
@@ -25,13 +24,13 @@ describe("router", () => {
         { path: "/bar", component: () => component(Div("bar")) },
       ],
     }));
-    router.path("/foo");
+    router.path.set("/foo");
     await wait();
     expect(root.textContent).toBe("foo");
-    router.path("/bar");
+    router.path.set("/bar");
     await wait();
     expect(root.textContent).toBe("bar");
-    router.path("/foo");
+    router.path.set("/foo");
     await wait();
     expect(root.textContent).toBe("foo");
   });
@@ -49,21 +48,21 @@ describe("router", () => {
         {
           path: "/pages/:id",
           component: () => {
-            return createReactiveTextNode(() => router.param("id"));
+            return createReactiveTextNode(() => router.param("id"))!;
           },
         },
       ],
     }));
-    router.path("/pages/foo");
+    router.path.set("/pages/foo");
     await wait();
     expect(root.textContent).toBe("foo");
-    router.path("/pages/bar");
+    router.path.set("/pages/bar");
     await wait();
     expect(root.textContent).toBe("bar");
-    router.path("/pages/baz");
+    router.path.set("/pages/baz");
     await wait();
     expect(root.textContent).toBe("baz");
-    router.path("/pages/foo");
+    router.path.set("/pages/foo");
     await wait();
     expect(root.textContent).toBe("foo");
   });
