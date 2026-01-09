@@ -3,9 +3,9 @@ import * as acornwalk from "acorn-walk";
 import * as esbuild from "esbuild";
 import { JSDOM } from "jsdom";
 import MagicString from "magic-string";
-import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
+import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 
 async function scopeSelectors(css: string, scopeId: string) {
   const result = await postcss([
@@ -983,9 +983,6 @@ export async function transformSFC(source: string, id: string) {
   if (!imports.some((imp) => imp.includes("$effect"))) {
     s.prepend("import { $effect } from '@thyn/core';\n");
   }
-  if (!imports.some((imp) => imp.includes("$compare"))) {
-    s.prepend("import { $compare } from '@thyn/core';\n");
-  }
   s.prepend("import * as __THYN__CORE__ from '@thyn/core';\n");
   s.append(imports.join("\n") + "\n");
 
@@ -1037,9 +1034,6 @@ async function compileThynScript(source, id) {
   }
   if (!imports.some((imp) => imp.includes("$effect"))) {
     s.prepend("import { $effect } from '@thyn/core';\n");
-  }
-  if (!imports.some((imp) => imp.includes("$compare"))) {
-    s.prepend("import { $compare } from '@thyn/core';\n");
   }
 
   let output = s.toString();
