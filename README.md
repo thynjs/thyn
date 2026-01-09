@@ -1,12 +1,12 @@
 # Thyn
 
-**Thyn** is an experimental JavaScript UI framework for building fast, memory-efficient web apps. It compiles `.thyn` single-file components into highly optimized DOM operations — no virtual DOM, no runtime bloat.
+**Thyn** is an experimental JavaScript UI framework for building fast, memory-efficient web apps. It compiles `.thyn` single-file components into highly optimized JavaScript.
 
-- ⚡ Fast runtime performance
-- 📦 Tiny bundles
-- 🧠 Minimal memory footprint
-- 🧪 Uses `.thyn` single-file components
-- 🚧 **Experimental** — limited tooling and ecosystem
+- Fast runtime performance
+- Tiny bundles
+- Minimal memory footprint
+- Uses `.thyn` single-file components
+- **Experimental** — limited tooling and ecosystem
 
 ---
 
