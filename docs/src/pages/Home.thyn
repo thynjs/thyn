@@ -10,7 +10,7 @@
 
   const tagline = $signal(0);
   $effect(() => {
-    const interval = setInterval(() => tagline(t => t + 1), 5000);
+    const interval = setInterval(() => tagline.update(t => t + 1), 5000);
     return () => clearInterval(interval);
   });
 
@@ -24,7 +24,7 @@
     <img src="/thyn.svg" />
     thyn
   </h1>
-  <p class="tagline">{{ taglines[tagline() % taglines.length] }}</p>
+  <p class="tagline">{{ taglines[tagline.get() % taglines.length] }}</p>
   <div class="compiled-wrapper">
     <div>
       <h4>source</h4>
@@ -35,8 +35,8 @@
   const count = $signal(0);
 &lt;\/script&gt;
 
-&lt;button onclick={() =&gt; count(c =&gt; c + 1)}&gt;
-  Count: \{{ count() \}}
+&lt;button onclick={() =&gt; count.update(c =&gt; c + 1)}&gt;
+  Count: \{{ count.get() \}}
 &lt;/button&gt;
 
 &lt;style&gt;
