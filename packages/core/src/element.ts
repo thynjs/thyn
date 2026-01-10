@@ -14,13 +14,9 @@ export function collectEffect(effectFn) {
 }
 
 export function createReactiveTextNode(v) {
-  let n;
+  const n = document.createTextNode(v());
   staticEffect(() => {
-    if (n) {
-      n.nodeValue = v();
-    } else {
-      n = document.createTextNode(v());
-    }
+    n.nodeValue = v();
   });
   return n;
 }
@@ -78,7 +74,7 @@ export function setReactiveAttribute(el, key, val) {
         else el.setAttribute(key, v);
         return;
       }
-      if (v !== undefined) el.setAttribute(key, val());
+      if (v !== undefined) el.setAttribute(key, v);
       ran = true;
     }),
   );
@@ -374,18 +370,6 @@ export function list(props, terminal = false) {
         });
       }
     }
-    if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-      const lastOrdered = childNodes[start + offset - 1];
-      const set = [];
-      for (let i = start; i <= newLength; i++) {
-        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + offset]);
-      }
-      lastOrdered.after(...set);
-      prevItems = nextItems;
-      keyMap = null;
-      nextItems = null;
-      return;
-    }
 
     while (start <= newLength) {
       const newChd = nextItems[start];
@@ -547,19 +531,6 @@ export function isolatedTerminalList(props) {
           item: prevItems[i],
         });
       }
-    }
-    if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-      const lastOrdered = childNodes[start];
-      const set = [];
-      for (let i = start; i <= newLength; i++) {
-        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + 1]);
-      }
-      lastOrdered.after(...set);
-      prevItems = nextItems;
-      keyMap = null;
-      nextItems = null;
-      childNodes = null;
-      return;
     }
 
     while (start <= newLength) {

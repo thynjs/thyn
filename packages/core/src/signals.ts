@@ -102,7 +102,6 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 }
 
 export function staticEffect(fn: (() => (() => void) | void) & any) {
-  fn.td = null;
   const prev = currentEffect;
   currentEffect = fn;
   fn();
