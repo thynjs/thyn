@@ -34,30 +34,52 @@ export type Signal<T> = {
 };
 
 class SignalImpl<T> {
-  subs: Set<any> | undefined;
+  subs: any;
 
   constructor(public value: T) { }
 
   get(): T {
     if (currentEffect) {
-      if (!this.subs) this.subs = new Set();
-      this.subs.add(currentEffect);
+      if (!this.subs) {
+        this.subs = currentEffect;
+      } else if (typeof this.subs === "function") {
+        if (this.subs !== currentEffect) {
+          this.subs = new Set([this.subs, currentEffect]);
+        }
+      } else {
+        this.subs.add(currentEffect);
+      }
       const td = currentEffect.td;
       if (!td) {
-        currentEffect.td = this.subs;
+        currentEffect.td = this;
       } else if (Array.isArray(td)) {
-        td.push(this.subs);
+        td.push(this);
       } else {
-        currentEffect.td = [td, this.subs];
+        currentEffect.td = [td, this];
       }
     }
     return this.value;
   }
 
+  delete(ef: any): void {
+    if (this.subs === ef) {
+      this.subs = undefined;
+    } else if (typeof this.subs === "object") {
+      this.subs.delete(ef);
+      if (this.subs.size === 0) this.subs = undefined;
+    }
+  }
+
   set(value: T): void {
     if (value !== this.value) {
       this.value = value;
-      if (this.subs) this.subs.forEach(scheduleEffect);
+      if (this.subs) {
+        if (typeof this.subs === "function") {
+          scheduleEffect(this.subs);
+        } else {
+          this.subs.forEach(scheduleEffect);
+        }
+      }
     }
   }
 
