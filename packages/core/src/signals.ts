@@ -6,24 +6,28 @@ let isBatching: boolean | undefined;
 const pendingEffects = [];
 
 function scheduleEffect(effectFn: EffectFn) {
-  pendingEffects.push(effectFn);
-  if (!isBatching) {
-    isBatching = true;
-    queueMicrotask(() => {
-      for (const ef of pendingEffects) {
-        if (ef.dyn) {
-          cleanup(ef);
-          const prev = currentEffect;
-          currentEffect = ef;
-          runEffectFn(ef);
-          currentEffect = prev;
-        } else {
-          ef();
+  if (!effectFn.scheduled) {
+    effectFn.scheduled = true;
+    pendingEffects.push(effectFn);
+    if (!isBatching) {
+      isBatching = true;
+      queueMicrotask(() => {
+        for (const ef of pendingEffects) {
+          ef.scheduled = false;
+          if (ef.dyn) {
+            cleanup(ef);
+            const prev = currentEffect;
+            currentEffect = ef;
+            runEffectFn(ef);
+            currentEffect = prev;
+          } else {
+            ef();
+          }
         }
-      }
-      pendingEffects.length = 0;
-      isBatching = false;
-    });
+        pendingEffects.length = 0;
+        isBatching = false;
+      });
+    }
   }
 }
 
@@ -89,6 +93,7 @@ type EffectFn = (() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
   td: EffectTeardown | EffectTeardown[];
+  scheduled?: boolean;
 }
 
 export function $effect(fn: (() => (() => void) | void) & any) {
