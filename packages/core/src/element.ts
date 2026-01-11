@@ -439,9 +439,11 @@ export function isolatedTerminalList(props) {
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     if (!newLength) {
-      const end = childNodeList.length - 1;
-      for (let i = 1; i < end; i++) {
-        shallowTeardown(childNodeList[i]);
+      let node = startBookend.nextSibling;
+      while (node !== endBookend) {
+        const next = node.nextSibling;
+        shallowTeardown(node);
+        node = next;
       }
       parent.textContent = "";
       parent.append(startBookend, endBookend);
@@ -458,30 +460,23 @@ export function isolatedTerminalList(props) {
       return;
     }
 
-    let childNodes = Array.from(childNodeList);
     if (start < 0) {
-      for (let i = nextItems.length; i < oldLength; i++) {
-        const e = childNodes[1 + --oldLength];
+      while (oldLength > nextItems.length) {
+        const e = endBookend.previousSibling;
         shallowTeardown(e);
         e.remove();
+        oldLength--;
       }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
       return;
     }
 
-    if (start >= newLength) {
-      while (start < oldLength) {
-        const e = childNodes[1 + --oldLength];
-        shallowTeardown(e);
-        e.remove();
-      }
-      prevItems = nextItems;
-      nextItems = null;
-      childNodes = null;
-      return;
-    }
+    // start >= newLength is covered by start < 0 or logic below if newLength > 0.
+    // If start is found, it is < newLength.
+    // The only case start >= newLength is impossible if start comes from findIndex on nextItems.
+
+    let childNodes = Array.from(childNodeList);
 
     // suffix
     for (
