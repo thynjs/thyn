@@ -439,9 +439,12 @@ export function isolatedTerminalList(props) {
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     if (!newLength) {
-      const end = childNodeList.length - 1;
-      for (let i = 1; i < end; i++) {
-        shallowTeardown(childNodeList[i]);
+      // Fast path for clearing: use nextSibling traversal instead of index access
+      let node = startBookend.nextSibling;
+      while (node !== endBookend) {
+        const next = node.nextSibling;
+        shallowTeardown(node);
+        node = next;
       }
       parent.textContent = "";
       parent.append(startBookend, endBookend);
@@ -458,30 +461,22 @@ export function isolatedTerminalList(props) {
       return;
     }
 
-    let childNodes = Array.from(childNodeList);
-    if (start < 0) {
-      for (let i = nextItems.length; i < oldLength; i++) {
-        const e = childNodes[1 + --oldLength];
+    // Handle truncation/prefix-match cases efficiently without allocating Array.from(childNodeList)
+    if (start < 0 || start >= newLength) {
+      // start < 0 means prefix matched up to nextItems.length (truncation)
+      // start >= newLength is similar (matched up to newLength)
+      let count = oldLength - newLength;
+      while (count-- > 0) {
+        const e = endBookend.previousSibling;
         shallowTeardown(e);
         e.remove();
       }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
       return;
     }
 
-    if (start >= newLength) {
-      while (start < oldLength) {
-        const e = childNodes[1 + --oldLength];
-        shallowTeardown(e);
-        e.remove();
-      }
-      prevItems = nextItems;
-      nextItems = null;
-      childNodes = null;
-      return;
-    }
+    let childNodes = Array.from(childNodeList);
 
     // suffix
     for (
