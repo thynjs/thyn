@@ -3,14 +3,15 @@ import { collectEffect } from "./element.js";
 let currentEffect: any;
 
 let isBatching: boolean | undefined;
-const pendingEffects = [];
+const pendingEffects = new Set<EffectFn>();
 
 function scheduleEffect(effectFn: EffectFn) {
-  pendingEffects.push(effectFn);
+  pendingEffects.add(effectFn);
   if (!isBatching) {
     isBatching = true;
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
+        pendingEffects.delete(ef);
         if (ef.dyn) {
           cleanup(ef);
           const prev = currentEffect;
@@ -21,7 +22,6 @@ function scheduleEffect(effectFn: EffectFn) {
           ef();
         }
       }
-      pendingEffects.length = 0;
       isBatching = false;
     });
   }
