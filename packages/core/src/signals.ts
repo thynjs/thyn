@@ -34,12 +34,13 @@ export type Signal<T> = {
 };
 
 class SignalImpl<T> {
-  subs = new Set<any>();
+  subs: Set<any> | undefined;
 
   constructor(public value: T) { }
 
   get(): T {
     if (currentEffect) {
+      if (!this.subs) this.subs = new Set();
       this.subs.add(currentEffect);
       const td = currentEffect.td;
       if (!td) {
@@ -56,7 +57,7 @@ class SignalImpl<T> {
   set(value: T): void {
     if (value !== this.value) {
       this.value = value;
-      this.subs.forEach(scheduleEffect);
+      if (this.subs) this.subs.forEach(scheduleEffect);
     }
   }
 
