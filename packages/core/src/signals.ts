@@ -2,8 +2,15 @@ import { collectEffect } from "./element.js";
 
 let currentEffect: any;
 
+type EffectTeardown = (() => void) | { delete: (v: any) => void };
+type EffectFn = (() => (() => void) | void) & {
+  mv?: boolean;
+  dyn?: boolean;
+  td: EffectTeardown | EffectTeardown[];
+}
+
 let isBatching: boolean | undefined;
-const pendingEffects = [];
+const pendingEffects: EffectFn[] = [];
 
 function scheduleEffect(effectFn: EffectFn) {
   pendingEffects.push(effectFn);
@@ -34,30 +41,59 @@ export type Signal<T> = {
 };
 
 class SignalImpl<T> {
-  subs: Set<any> | undefined;
+  subs: EffectFn | Set<EffectFn> | undefined;
 
   constructor(public value: T) { }
 
   get(): T {
     if (currentEffect) {
-      if (!this.subs) this.subs = new Set();
-      this.subs.add(currentEffect);
-      const td = currentEffect.td;
-      if (!td) {
-        currentEffect.td = this.subs;
-      } else if (Array.isArray(td)) {
-        td.push(this.subs);
-      } else {
-        currentEffect.td = [td, this.subs];
+      const subs = this.subs;
+      if (!subs) {
+        this.subs = currentEffect;
+        this._addTd(currentEffect);
+      } else if (subs !== currentEffect) {
+        if (typeof subs === 'function') {
+          this.subs = new Set([subs, currentEffect]);
+          this._addTd(currentEffect);
+        } else if (!subs.has(currentEffect)) {
+          subs.add(currentEffect);
+          this._addTd(currentEffect);
+        }
       }
     }
     return this.value;
   }
 
+  _addTd(effect: EffectFn) {
+    const td = effect.td;
+    if (!td) {
+      effect.td = this;
+    } else if (Array.isArray(td)) {
+      td.push(this);
+    } else {
+      effect.td = [td, this];
+    }
+  }
+
+  delete(ef: EffectFn) {
+    if (this.subs === ef) {
+      this.subs = undefined;
+    } else if (typeof this.subs !== 'function' && this.subs) {
+      this.subs.delete(ef);
+      if (this.subs.size === 0) this.subs = undefined;
+    }
+  }
+
   set(value: T): void {
     if (value !== this.value) {
       this.value = value;
-      if (this.subs) this.subs.forEach(scheduleEffect);
+      if (this.subs) {
+        if (typeof this.subs === 'function') {
+          scheduleEffect(this.subs);
+        } else {
+          this.subs.forEach(scheduleEffect);
+        }
+      }
     }
   }
 
@@ -83,13 +119,6 @@ function runEffectFn(ef: EffectFn) {
       ef.td = td;
     }
   }
-}
-
-type EffectTeardown = (() => void) | { delete: (v: any) => void };
-type EffectFn = (() => (() => void) | void) & {
-  mv?: boolean;
-  dyn?: boolean;
-  td: EffectTeardown | EffectTeardown[];
 }
 
 export function $effect(fn: (() => (() => void) | void) & any) {
