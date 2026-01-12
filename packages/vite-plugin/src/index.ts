@@ -395,7 +395,7 @@ function makeTemplate(
     if (DIRECTIVES.includes(key)) continue;
     if (!("raw" in val)) continue;
     if (key.startsWith("on")) {
-      code += `${dynRoot}.${key} = ${val.raw};\n`;
+      code += `__THYN__CORE__.addEvent(${dynRoot}, "${key}", ${val.raw});\n`;
       continue;
     }
     const reactive = isReactiveExpression(val.raw.replace(/^\(\) => /, ""));
@@ -581,7 +581,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
       if (DIRECTIVES.includes(key)) continue;
       if (!("raw" in val)) continue;
       if (key.startsWith("on")) {
-        code = `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+        code = `__THYN__CORE__.addEvent(${cloneIfNeeded(code)
           }, "${key}", ${val.raw})`;
         continue;
       }
