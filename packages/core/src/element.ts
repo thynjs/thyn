@@ -239,11 +239,9 @@ export function show(props) {
       }
 
       let td = prevElem;
-      queueMicrotask(() => {
-        teardown(td);
-        td.replaceWith(newElem);
-        td = null;
-      });
+      teardown(td);
+      td.replaceWith(newElem);
+      td = null;
     }
     prevElem = newElem;
     prevIndex = currIndex;
