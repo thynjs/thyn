@@ -266,14 +266,20 @@ export function list(props, terminal = false) {
     parent = startBookend.parentNode;
     if (!parent) {
       prevItems = props.items();
-      outlet.append(startBookend, ...prevItems.map(render), endBookend);
+      outlet.appendChild(startBookend);
+      for (let i = 0, len = prevItems.length; i < len; i++) {
+        outlet.appendChild(render(prevItems[i]));
+      }
+      outlet.appendChild(endBookend);
       return;
     }
     let nextItems = props.items();
     let newLength = nextItems.length;
     let oldLength = prevItems.length;
     if (!oldLength && newLength) {
-      endBookend.before(...nextItems.map(render))
+      for (let i = 0; i < nextItems.length; i++) {
+        parent.insertBefore(render(nextItems[i]), endBookend);
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -299,7 +305,9 @@ export function list(props, terminal = false) {
 
     let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
     if (start === oldLength) {
-      endBookend.before(...nextItems.slice(start).map(render));
+      for (let i = start; i < nextItems.length; i++) {
+        parent.insertBefore(render(nextItems[i]), endBookend);
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -433,7 +441,9 @@ export function isolatedTerminalList(props) {
     let newLength = nextItems.length;
     let oldLength = prevItems.length;
     if (!oldLength && newLength) {
-      endBookend.before(...nextItems.map(render))
+      for (let i = 0; i < nextItems.length; i++) {
+        parent.insertBefore(render(nextItems[i]), endBookend);
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -454,7 +464,9 @@ export function isolatedTerminalList(props) {
 
     let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
     if (start === oldLength) {
-      endBookend.before(...nextItems.slice(start).map(render));
+      for (let i = start; i < nextItems.length; i++) {
+        parent.insertBefore(render(nextItems[i]), endBookend);
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -514,7 +526,11 @@ export function isolatedTerminalList(props) {
           node = node.nextSibling;
         }
         parent.textContent = "";
-        parent.append(startBookend, ...nextItems.map(render), endBookend);
+        parent.appendChild(startBookend);
+        for (let i = 0; i < nextItems.length; i++) {
+          parent.appendChild(render(nextItems[i]));
+        }
+        parent.appendChild(endBookend);
         prevItems = nextItems;
         nextItems = null;
         return;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { $signal, list } from "../src";
+import { $signal, isolatedTerminalList, list } from "../src";
 import { wait } from "./utils";
 
 function makeGenericList(signal: any) {
@@ -14,7 +14,7 @@ function makeGenericList(signal: any) {
 }
 
 function makeIsolatedTerminalList(signal: any) {
-  return list({
+  return isolatedTerminalList({
     items: () => signal.get(),
     render: (item: number) => {
       const span = document.createElement("span");
@@ -39,39 +39,41 @@ const run = (makeList: any) => describe("list", () => {
     expect(root.textContent).toBe("");
   });
 
-  it("removes all when offset 1", async () => {
-    const items = $signal([0, 1, 2, 3]);
-    const root = document.createElement("div");
-    const a = document.createElement("span");
-    a.textContent = "a";
-    const b = document.createElement("span");
-    b.textContent = "b";
-    const div = makeList(items);
-    root.append(a, div, b);
-    expect(root.textContent).toBe("a0123b");
-    items.set([]);
-    await wait();
-    expect(root.textContent).toBe("ab");
-  });
+  if (makeList === makeGenericList) {
+    it("removes all when offset 1", async () => {
+      const items = $signal([0, 1, 2, 3]);
+      const root = document.createElement("div");
+      const a = document.createElement("span");
+      a.textContent = "a";
+      const b = document.createElement("span");
+      b.textContent = "b";
+      const div = makeList(items);
+      root.append(a, div, b);
+      expect(root.textContent).toBe("a0123b");
+      items.set([]);
+      await wait();
+      expect(root.textContent).toBe("ab");
+    });
 
-  it("removes all when offset 2", async () => {
-    const items = $signal([0, 1, 2, 3]);
-    const root = document.createElement("div");
-    const a = document.createElement("span");
-    a.textContent = "a";
-    const b = document.createElement("span");
-    b.textContent = "b";
-    const c = document.createElement("span");
-    c.textContent = "c";
-    const d = document.createElement("span");
-    d.textContent = "d";
-    const div = makeList(items);
-    root.append(a, b, div, c, d);
-    expect(root.textContent).toBe("ab0123cd");
-    items.set([]);
-    await wait();
-    expect(root.textContent).toBe("abcd");
-  });
+    it("removes all when offset 2", async () => {
+      const items = $signal([0, 1, 2, 3]);
+      const root = document.createElement("div");
+      const a = document.createElement("span");
+      a.textContent = "a";
+      const b = document.createElement("span");
+      b.textContent = "b";
+      const c = document.createElement("span");
+      c.textContent = "c";
+      const d = document.createElement("span");
+      d.textContent = "d";
+      const div = makeList(items);
+      root.append(a, b, div, c, d);
+      expect(root.textContent).toBe("ab0123cd");
+      items.set([]);
+      await wait();
+      expect(root.textContent).toBe("abcd");
+    });
+  }
 
   it("stays the same", async () => {
     const items = $signal([0, 1]);
