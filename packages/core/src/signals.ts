@@ -3,10 +3,11 @@ import { collectEffect } from "./element.js";
 let currentEffect: any;
 
 let isBatching: boolean | undefined;
-const pendingEffects = [];
+const pendingEffects = new Set<EffectFn>();
 
 function scheduleEffect(effectFn: EffectFn) {
-  pendingEffects.push(effectFn);
+  if (pendingEffects.has(effectFn)) return;
+  pendingEffects.add(effectFn);
   if (!isBatching) {
     isBatching = true;
     queueMicrotask(() => {
@@ -21,7 +22,7 @@ function scheduleEffect(effectFn: EffectFn) {
           ef();
         }
       }
-      pendingEffects.length = 0;
+      pendingEffects.clear();
       isBatching = false;
     });
   }
@@ -93,6 +94,23 @@ class SignalImpl<T> {
 
   update(action: (prev: T) => T): void {
     this.set(action(this.value));
+  }
+
+  subscribe(fn: (val: T) => void) {
+    const node: any = () => fn(this.value);
+    node.td = this;
+    if (!this.subs) {
+      this.subs = node;
+    } else if (typeof this.subs === "function") {
+      const oldEffect = this.subs;
+      this.subs = new Set();
+      this.subs.add(oldEffect);
+      this.subs.add(node);
+    } else {
+      this.subs.add(node);
+    }
+    node();
+    return node;
   }
 }
 
