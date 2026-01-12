@@ -1,77 +1,52 @@
-import { collectEffect } from "./element.js";
-
-let currentEffect: any;
-
-let isBatching: boolean | undefined;
-const pendingEffects = [];
-
-function scheduleEffect(effectFn: EffectFn) {
-  pendingEffects.push(effectFn);
-  if (!isBatching) {
-    isBatching = true;
-    queueMicrotask(() => {
-      for (const ef of pendingEffects) {
-        if (ef.dyn) {
-          cleanup(ef);
-          const prev = currentEffect;
-          currentEffect = ef;
-          runEffectFn(ef);
-          currentEffect = prev;
-        } else {
-          ef();
-        }
-      }
-      pendingEffects.length = 0;
-      isBatching = false;
-    });
-  }
-}
-
 export type Signal<T> = {
   get(): T;
   set(value: T): void;
   update(updater: (prev: T) => T): void;
 };
 
+let currentEffect: any;
+
+function runEffect(ef: any) {
+  if (ef.dyn) {
+    cleanup(ef);
+    if (ef.td) ef.td.length = 0;
+    else ef.td = [];
+    const prev = currentEffect;
+    currentEffect = ef;
+    runEffectFn(ef);
+    currentEffect = prev;
+  } else {
+    ef();
+  }
+}
+
 class SignalImpl<T> {
-  subs: any = undefined;
+  subs: Set<any> | undefined = undefined;
 
   constructor(public value: T) { }
 
   get(): T {
     if (currentEffect) {
       if (!this.subs) {
-        this.subs = currentEffect;
-      } else if (typeof this.subs === "function") {
-        if (this.subs !== currentEffect) {
-          const oldEffect = this.subs;
-          this.subs = new Set();
-          this.subs.add(oldEffect);
-          this.subs.add(currentEffect);
-        }
+        this.subs = new Set();
+        this.subs.add(currentEffect);
       } else {
         this.subs.add(currentEffect);
       }
       if (!currentEffect.td) {
-        currentEffect.td = this;
-      } else if (Array.isArray(currentEffect.td)) {
-        currentEffect.td.push(this);
+        currentEffect.td = [this];
       } else {
-        currentEffect.td = [currentEffect.td, this];
+        currentEffect.td.push(this);
       }
     }
     return this.value;
   }
 
   delete(ef: any): void {
-    if (this.subs === ef) {
-      this.subs = undefined;
-    } else if (typeof this.subs === "object") {
+    if (this.subs) {
       this.subs.delete(ef);
       if (this.subs.size === 0) {
         this.subs = undefined;
-      } else if (this.subs.size === 1) {
-        this.subs = this.subs.values().next().value;
       }
     }
   }
@@ -80,12 +55,8 @@ class SignalImpl<T> {
     if (value !== this.value) {
       this.value = value;
       if (this.subs) {
-        if (typeof this.subs === "function") {
-          scheduleEffect(this.subs);
-        } else {
-          for (const ef of this.subs) {
-            scheduleEffect(ef);
-          }
+        for (const ef of Array.from(this.subs)) {
+          runEffect(ef);
         }
       }
     }
@@ -104,13 +75,9 @@ function runEffectFn(ef: EffectFn) {
   const td = ef();
   if (td) {
     if (ef.td) {
-      if (Array.isArray(ef.td)) {
-        ef.td.push(td)
-      } else {
-        ef.td = [ef.td, td];
-      }
+      ef.td.push(td);
     } else {
-      ef.td = td;
+      ef.td = [td];
     }
   }
 }
@@ -119,7 +86,7 @@ type EffectTeardown = (() => void) | { delete: (v: any) => void };
 type EffectFn = (() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
-  td: EffectTeardown | EffectTeardown[];
+  td: EffectTeardown[]; // Always Array
 }
 
 export function $effect(fn: (() => (() => void) | void) & any) {
@@ -141,12 +108,15 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
   return fn;
 }
 
-export function cleanup(ef) {
-  if (typeof ef.td === "function") {
-    ef.td();
-  } else if (ef.td.delete) {
-    ef.td.delete(ef);
-  } else {
-    for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
+export function cleanup(ef: any) {
+  if (!ef.td) return;
+  for (const f of ef.td) {
+    if (typeof f === "function") {
+      f();
+    } else {
+      f.delete(ef);
+    }
   }
 }
+
+import { collectEffect } from "./element.js";
