@@ -11,9 +11,10 @@ export function collectEffect(effectFn) {
 }
 
 export function createReactiveTextNode(v) {
-  const n = document.createTextNode(v());
+  let n;
   staticEffect(() => {
-    n.nodeValue = v();
+    if (n) n.nodeValue = v();
+    else n = document.createTextNode(v());
   });
   return n;
 }
@@ -56,18 +57,7 @@ export function fixedComponent(name, props?: any) {
   const prevHead = collectingHead;
   collectingHead = null;
   const e = name(props);
-  let existing = e.$fx;
-  if (existing) {
-    if (collectingHead) {
-      let next;
-      while ((next = existing.next)) {
-        existing = next;
-      }
-      existing.next = collectingHead;
-    }
-  } else {
-    e.$fx = collectingHead;
-  }
+  e.$fx = collectingHead;
   collectingHead = prevHead;
   return e;
 }
@@ -81,7 +71,7 @@ export function setProperty(el, key, val) {
   return el;
 }
 export function setReactiveAttribute(el, key, val) {
-  let ran;
+  let ran = false;
   return addEffect(
     el,
     staticEffect(() => {
@@ -97,7 +87,7 @@ export function setReactiveAttribute(el, key, val) {
   );
 }
 export function setReactiveProperty(el, key, val) {
-  let ran = true;
+  let ran = false;
   return addEffect(
     el,
     staticEffect(() => {
@@ -470,13 +460,13 @@ export function isolatedTerminalList(props) {
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     if (!newLength) {
-      let node = startBookend.nextSibling;
-      while (node !== endBookend) {
+      let node = startBookend;
+      while (node = node.nextSibling) {
         shallowTeardown(node);
-        node = node.nextSibling;
       }
       parent.textContent = "";
-      parent.append(startBookend, endBookend);
+      parent.appendChild(startBookend);
+      parent.appendChild(endBookend);
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -540,10 +530,9 @@ export function isolatedTerminalList(props) {
         }
       }
       if (allRemove) {
-        let node = startBookend.nextSibling;
-        while (node !== endBookend) {
+        let node = startBookend;
+        while (node = node.nextSibling) {
           shallowTeardown(node);
-          node = node.nextSibling;
         }
         parent.textContent = "";
         parent.appendChild(startBookend);

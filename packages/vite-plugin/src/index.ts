@@ -420,7 +420,7 @@ function makeTemplate(
         code += `__THYN__CORE__.staticEffect(() => {
             const val = ${val.raw};
             if (val === undefined) {
-              if (${ran} && ${dynRoot}.hasAttribute("${key}")) {
+              if (${ran}) {
                 ${dynRoot}.removeAttribute("${key}");
               }
             } else {
@@ -556,7 +556,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     if (children.length) {
       props.slot = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
     }
-    code = `__THYN__CORE__.component(${makeArg}, ${createObjectCode(props)})`;
+    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${createObjectCode(props)})`;
   } else {
     code = createHoisting(`document.createElement(${makeArg})`, hoist);
     for (const [key, val] of Object.entries(attrs)) {
@@ -625,7 +625,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     const isolated = siblings ? Array.from(siblings).filter((n) => n.nodeType !== 3 || n.textContent.trim()).length === 1 : true;
     const forAttr = attrs["#for"].raw;
     const [item, iterable] = forAttr.split(" in ").map((s) => s.trim());
-    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${hasComponentChildren
+    code = `__THYN__CORE__.component(${hasComponentChildren
       ? "__THYN__CORE__.list"
       : (isolated ? "__THYN__CORE__.isolatedTerminalList" : "__THYN__CORE__.terminalList")
       }, {
