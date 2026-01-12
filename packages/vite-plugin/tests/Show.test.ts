@@ -4,10 +4,12 @@ import Show from "./Show.thyn";
 describe("Show component", () => {
   it("swaps on click", async () => {
     const root = Show();
+    document.body.appendChild(root);
     expect(root.textContent).toBe("foo");
     root.click();
     await Promise.resolve();
     await Promise.resolve();
     expect(root.textContent).toBe("bar");
+    document.body.removeChild(root);
   });
 });

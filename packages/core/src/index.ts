@@ -3,6 +3,7 @@ export {
   addEffect,
   component,
   createReactiveTextNode,
+  delegate,
   fixedComponent,
   isolatedTerminalList,
   list,
@@ -16,4 +17,3 @@ export {
   terminalList
 } from "./element.js";
 export { $effect, $signal, staticEffect } from "./signals.js";
-

@@ -113,6 +113,49 @@ export function setReactiveProperty(el, key, val) {
   );
 }
 
+const delegatedEvents = new Set();
+const nonBubblingEvents = new Set([
+  "focus",
+  "blur",
+  "scroll",
+  "load",
+  "error",
+  "mouseenter",
+  "mouseleave",
+]);
+
+export function delegate(el, event, handler) {
+  if (nonBubblingEvents.has(event)) {
+    el.addEventListener(event, handler);
+    return el;
+  }
+  if (!delegatedEvents.has(event)) {
+    delegatedEvents.add(event);
+    document.addEventListener(event, handleDelegatedEvent);
+  }
+  el[`__thyn_on${event}`] = handler;
+  return el;
+}
+
+function handleDelegatedEvent(e) {
+  let target = e.target;
+  const key = `__thyn_on${e.type}`;
+  Object.defineProperty(e, "currentTarget", {
+    configurable: true,
+    enumerable: true,
+    get: () => target,
+  });
+  while (target) {
+    const handler = target[key];
+    if (handler) {
+      handler.call(target, e);
+      if (e.cancelBubble) return;
+    }
+    if (target === document) break;
+    target = target.parentNode;
+  }
+}
+
 export function addChildren(e, children) {
   for (const ch of children) {
     e.appendChild(ch);
@@ -616,4 +659,3 @@ export function isolatedTerminalList(props) {
   });
   return outlet;
 }
-
