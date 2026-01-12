@@ -34,7 +34,7 @@ export type Signal<T> = {
 };
 
 class SignalImpl<T> {
-  subs: any;
+  subs: any = undefined;
 
   constructor(public value: T) { }
 
@@ -44,18 +44,20 @@ class SignalImpl<T> {
         this.subs = currentEffect;
       } else if (typeof this.subs === "function") {
         if (this.subs !== currentEffect) {
-          this.subs = new Set([this.subs, currentEffect]);
+          const oldEffect = this.subs;
+          this.subs = new Set();
+          this.subs.add(oldEffect);
+          this.subs.add(currentEffect);
         }
       } else {
         this.subs.add(currentEffect);
       }
-      const td = currentEffect.td;
-      if (!td) {
+      if (!currentEffect.td) {
         currentEffect.td = this;
-      } else if (Array.isArray(td)) {
-        td.push(this);
+      } else if (Array.isArray(currentEffect.td)) {
+        currentEffect.td.push(this);
       } else {
-        currentEffect.td = [td, this];
+        currentEffect.td = [currentEffect.td, this];
       }
     }
     return this.value;
@@ -66,7 +68,11 @@ class SignalImpl<T> {
       this.subs = undefined;
     } else if (typeof this.subs === "object") {
       this.subs.delete(ef);
-      if (this.subs.size === 0) this.subs = undefined;
+      if (this.subs.size === 0) {
+        this.subs = undefined;
+      } else if (this.subs.size === 1) {
+        this.subs = this.subs.values().next().value;
+      }
     }
   }
 
@@ -77,7 +83,9 @@ class SignalImpl<T> {
         if (typeof this.subs === "function") {
           scheduleEffect(this.subs);
         } else {
-          this.subs.forEach(scheduleEffect);
+          for (const ef of this.subs) {
+            scheduleEffect(ef);
+          }
         }
       }
     }

@@ -5,11 +5,8 @@ export function mount(app, parent) {
 }
 
 let collectingHead;
-
 export function collectEffect(effectFn) {
-  if (collectingHead) {
-    effectFn.next = collectingHead;
-  }
+  effectFn.next = collectingHead;
   collectingHead = effectFn;
 }
 
@@ -425,7 +422,11 @@ export function isolatedTerminalList(props) {
     parent = startBookend.parentNode;
     if (!parent) {
       prevItems = props.items();
-      outlet.append(startBookend, ...prevItems.map(render), endBookend);
+      outlet.appendChild(startBookend);
+      for (let i = 0, len = prevItems.length; i < len; i++) {
+        outlet.appendChild(render(prevItems[i]));
+      }
+      outlet.appendChild(endBookend);
       return;
     }
     let nextItems = props.items();
