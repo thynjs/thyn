@@ -625,7 +625,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     const isolated = siblings ? Array.from(siblings).filter((n) => n.nodeType !== 3 || n.textContent.trim()).length === 1 : true;
     const forAttr = attrs["#for"].raw;
     const [item, iterable] = forAttr.split(" in ").map((s) => s.trim());
-    code = `__THYN__CORE__.component(${hasComponentChildren
+    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${hasComponentChildren
       ? "__THYN__CORE__.list"
       : (isolated ? "__THYN__CORE__.isolatedTerminalList" : "__THYN__CORE__.terminalList")
       }, {

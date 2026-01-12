@@ -22,7 +22,7 @@ export function component(name, props?: any) {
   const prevHead = collectingHead;
   collectingHead = null;
   const e = name(props);
-  const existing = e.$fx;
+  let existing = e.$fx;
 
   if (existing) {
     let current = existing;
@@ -38,16 +38,36 @@ export function component(name, props?: any) {
       current = current.next;
     }
     if (collectingHead) {
-      let tail = existing;
-      while (tail.next) {
-        tail = tail.next;
+      let next;
+      while ((next = existing.next)) {
+        existing = next;
       }
-      tail.next = collectingHead;
+      existing.next = collectingHead;
     }
   } else {
     e.$fx = collectingHead;
   }
 
+  collectingHead = prevHead;
+  return e;
+}
+
+export function fixedComponent(name, props?: any) {
+  const prevHead = collectingHead;
+  collectingHead = null;
+  const e = name(props);
+  let existing = e.$fx;
+  if (existing) {
+    if (collectingHead) {
+      let next;
+      while ((next = existing.next)) {
+        existing = next;
+      }
+      existing.next = collectingHead;
+    }
+  } else {
+    e.$fx = collectingHead;
+  }
   collectingHead = prevHead;
   return e;
 }
