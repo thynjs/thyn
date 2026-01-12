@@ -13,7 +13,7 @@ export function collectEffect(effectFn) {
 export function createReactiveTextNode(v) {
   let n;
   staticEffect(() => {
-    if (n) n.nodeValue = v();
+    if (n) n.data = v();
     else n = document.createTextNode(v());
   });
   return n;

@@ -281,7 +281,7 @@ function generateTextContentTemplate(
     }
     const stat = `const ${root} = document.createTextNode("");\n`;
     const dynamic = `__THYN__CORE__.staticEffect(() => {
-      ${textNode}.nodeValue = ${fn}();
+      ${textNode}.data = ${fn}();
     });\n`;
     return {
       static: stat,
@@ -293,7 +293,7 @@ function generateTextContentTemplate(
 
   if (parts.length === 1) {
     return {
-      dynamic: `${textNode}.nodeValue = ${interpolated.slice(2, -1)};\n`,
+      dynamic: `${textNode}.data = ${interpolated.slice(2, -1)};\n`,
       static: `const ${root} = document.createTextNode("");\n`,
       root: "",
       staticRoot: root,
@@ -301,7 +301,7 @@ function generateTextContentTemplate(
   }
 
   return {
-    dynamic: `${textNode}.nodeValue = \`${interpolated}\`;\n`,
+    dynamic: `${textNode}.data = \`${interpolated}\`;\n`,
     static: `const ${root} = document.createTextNode("");\n`,
     root: "",
     staticRoot: root,
