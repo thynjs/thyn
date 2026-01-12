@@ -460,28 +460,31 @@ export function isolatedTerminalList(props) {
       return;
     }
 
-    let childNodes = Array.from(childNodeList);
     if (start < 0) {
-      for (let i = nextItems.length; i < oldLength; i++) {
-        const e = childNodes[1 + --oldLength];
+      let removeCount = oldLength - nextItems.length;
+      while (removeCount > 0) {
+        const e = endBookend.previousSibling;
         shallowTeardown(e);
         e.remove();
+        removeCount--;
       }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
       return;
     }
 
     if (start >= newLength) {
-      while (start < oldLength) {
-        const e = childNodes[1 + --oldLength];
-        shallowTeardown(e);
-        e.remove();
+      let removeCount = oldLength - start;
+      let node = childNodeList[start + 1];
+      while (removeCount > 0) {
+        const next = node.nextSibling;
+        shallowTeardown(node);
+        node.remove();
+        node = next;
+        removeCount--;
       }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
       return;
     }
 
@@ -495,43 +498,46 @@ export function isolatedTerminalList(props) {
     );
 
     const nextKeys = new Set(nextItems);
-    const removalQueue = [];
-    for (let i = start; i <= oldLength; i++) {
-      if (!nextKeys.has(prevItems[i])) {
-        const ch = childNodes[i + 1];
-        shallowTeardown(ch);
-        removalQueue.push(ch);
-        childNodes[i + 1] = null;
+
+    if (start === 0 && oldLength === prevItems.length - 1) {
+      let allRemove = true;
+      for (let i = 0; i <= oldLength; i++) {
+        if (nextKeys.has(prevItems[i])) {
+          allRemove = false;
+          break;
+        }
+      }
+      if (allRemove) {
+        let node = startBookend.nextSibling;
+        while (node !== endBookend) {
+          shallowTeardown(node);
+          node = node.nextSibling;
+        }
+        parent.textContent = "";
+        parent.append(startBookend, ...nextItems.map(render), endBookend);
+        prevItems = nextItems;
+        nextItems = null;
+        return;
       }
     }
-    if (removalQueue.length === prevItems.length) {
-      parent.textContent = "";
-      parent.append(startBookend, ...nextItems.map(render), endBookend);
-      prevItems = nextItems;
-      nextItems = null;
-      childNodes = null;
-      return;
-    }
-    for (const e of removalQueue) {
-      e.remove();
-    }
-    if (oldLength - start === removalQueue.length) {
-      prevItems = nextItems;
-      nextItems = null;
-      childNodes = null;
-      return;
-    }
+
     let keyMap = new Map();
+    let currentNode = childNodeList[start + 1];
     for (let i = start; i <= oldLength; i++) {
-      if (
-        childNodes[i + 1] &&
-        (!nextItems[i] ||
-          prevItems[i] !== nextItems[i])
-      ) {
-        keyMap.set(prevItems[i], {
-          el: childNodes[i + 1],
-          item: prevItems[i],
-        });
+      const item = prevItems[i];
+      if (!nextKeys.has(item)) {
+        const next = currentNode.nextSibling;
+        shallowTeardown(currentNode);
+        currentNode.remove();
+        currentNode = next;
+      } else {
+        if (currentNode && (!nextItems[i] || item !== nextItems[i])) {
+          keyMap.set(item, {
+            el: currentNode,
+            item: item,
+          });
+        }
+        currentNode = currentNode.nextSibling;
       }
     }
 
@@ -571,7 +577,6 @@ export function isolatedTerminalList(props) {
     keyMap = null;
     prevItems = nextItems;
     nextItems = null;
-    childNodes = null;
   });
   return outlet;
 }
