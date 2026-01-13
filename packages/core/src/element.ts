@@ -59,6 +59,15 @@ export function component(name, props?: any) {
   return e;
 }
 
+export function fixedComponent(name, props?: any) {
+  const prevHead = collectingHead;
+  collectingHead = null;
+  const e = name(props);
+  e.$fx = collectingHead;
+  collectingHead = prevHead;
+  return e;
+}
+
 export function setAttribute(el, key, val) {
   if (val) el.setAttribute(key, val);
   return el;
@@ -78,13 +87,13 @@ export function setReactiveAttribute(el, key, val) {
         else el.setAttribute(key, v);
         return;
       }
-      if (v !== undefined) el.setAttribute(key, val());
+      if (v !== undefined) el.setAttribute(key, v);
       ran = true;
     }),
   );
 }
 export function setReactiveProperty(el, key, val) {
-  let ran = true;
+  let ran = false;
   return addEffect(
     el,
     staticEffect(() => {

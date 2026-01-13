@@ -1,9 +1,7 @@
 export {
   addChildren,
   addEffect,
-  component,
-  createReactiveTextNode,
-  list,
+  component, createReactiveTextNode, fixedComponent, isolatedTerminalList, list,
   markAsReactive,
   mount,
   setAttribute,
@@ -11,7 +9,7 @@ export {
   setReactiveAttribute,
   setReactiveProperty,
   show,
-  terminalList,
-  isolatedTerminalList,
+  terminalList
 } from "./element.js";
-export { staticEffect, $effect, $signal, type Signal } from "./signals.js";
+export { $effect, $signal, staticEffect, type Signal } from "./signals.js";
+

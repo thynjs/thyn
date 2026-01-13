@@ -3,9 +3,9 @@ import * as acornwalk from "acorn-walk";
 import * as esbuild from "esbuild";
 import { JSDOM } from "jsdom";
 import MagicString from "magic-string";
-import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
+import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 
 async function scopeSelectors(css: string, scopeId: string) {
   const result = await postcss([
@@ -556,7 +556,7 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     if (children.length) {
       props.slot = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
     }
-    code = `__THYN__CORE__.component(${makeArg}, ${createObjectCode(props)})`;
+    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${createObjectCode(props)})`;
   } else {
     code = createHoisting(`document.createElement(${makeArg})`, hoist);
     for (const [key, val] of Object.entries(attrs)) {

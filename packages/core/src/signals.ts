@@ -112,10 +112,11 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
 }
 
 export function cleanup(ef) {
-  if (!ef.td) return;
-  if (Array.isArray(ef.td)) {
-    for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
+  if (ef.td.delete) {
+    ef.td.delete(ef);
+  } else if (typeof ef.td === "function") {
+    ef.td();
   } else {
-    typeof ef.td === "function" ? ef.td() : ef.td.delete(ef);
+    for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
   }
 }
