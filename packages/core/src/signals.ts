@@ -27,13 +27,7 @@ function scheduleEffect(effectFn: EffectFn) {
   }
 }
 
-export type Signal<T> = {
-  get(): T;
-  set(value: T): void;
-  update(updater: (prev: T) => T): void;
-};
-
-class SignalImpl<T> {
+export class Signal<T> {
   subs = new Set<any>();
 
   constructor(public value: T) { }
@@ -56,7 +50,9 @@ class SignalImpl<T> {
   set(value: T): void {
     if (value !== this.value) {
       this.value = value;
-      this.subs.forEach(scheduleEffect);
+      for (const sub of this.subs) {
+        scheduleEffect(sub);
+      }
     }
   }
 
@@ -65,8 +61,8 @@ class SignalImpl<T> {
   }
 }
 
-export function $signal<T>(value: T): SignalImpl<T> {
-  return new SignalImpl(value);
+export function $signal<T>(value: T): Signal<T> {
+  return new Signal(value);
 }
 
 function runEffectFn(ef: EffectFn) {

@@ -3,9 +3,9 @@
   const bar = $signal(0);
 </script>
 
-<div onclick={() => bar(c => c + 1)}>
-  <div class="inner" onclick.stop={() => foo(c => c + 1)}>
-    <span>{{ foo() }}</span><span>{{ bar() }}</span>
+<div onclick={() => bar.update(c => c + 1)}>
+  <div class="inner" onclick.stop={() => foo.update(c => c + 1)}>
+    <span>{{ foo.get() }}</span><span>{{ bar.get() }}</span>
   </div>
 </div>
 

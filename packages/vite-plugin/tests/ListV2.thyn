@@ -6,7 +6,7 @@
   <p>
     start 
   </p>
-  <p #for={item in items.get()}>
+  <p #for={item in items.get()} class={items.get().length === 3 ? 'three' : 'not-three'}>
     {{ item }}
   </p>
   <p>

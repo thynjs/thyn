@@ -4,6 +4,6 @@
 </script>
 
 <div>
-  {{ foo() }}{{ bar() }}
+  {{ foo.get() }}{{ bar.get() }}
 </div>
 
