@@ -44,6 +44,17 @@ function isReactiveExpression(expr) {
   return isReactive;
 }
 
+function isSafeToHoist(expr) {
+  try {
+    const ast = acorn.parseExpressionAt(expr, 0, { ecmaVersion: 2022 });
+    if (ast.type === "Literal") return true;
+    if (ast.type === "Identifier" && ast.name === "undefined") return true;
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
 const DOUBLE_QUOTE = "__THYN__DOUBLE_QUOTE__";
 
 function parseAttributes(el) {
@@ -598,18 +609,28 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         }
         continue;
       }
-      if (key === "class" || key.includes("-")) {
-        code = createHoisting(
-          `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`,
-          hoist,
-        );
+      if (isSafeToHoist(val.raw)) {
+        if (key === "class" || key.includes("-")) {
+          code = createHoisting(
+            `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`,
+            hoist,
+          );
+        } else {
+          code = createHoisting(
+            `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`,
+            hoist,
+          );
+        }
       } else {
-        code = createHoisting(
-          `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`,
-          hoist,
-        );
+        if (key === "class" || key.includes("-")) {
+          code = `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
+        } else {
+          code = `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+            }, "${key}", ${val.raw})`;
+        }
       }
     }
     if (children.length) {
