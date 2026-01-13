@@ -101,7 +101,7 @@ function parseAttributes(el) {
   return result;
 }
 
-function parseTextContent(text: string) {
+function extractInterpolations(text: string) {
   text = text.trim();
 
   // First, handle escaped braces by temporarily replacing them
@@ -113,29 +113,55 @@ function parseTextContent(text: string) {
     return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
   });
 
-  const regex = /\{\{([^}]+)\}\}/g;
-  let lastIndex = 0;
-  let match;
   const parts = [];
+  let lastIndex = 0;
   let hasReactive = false;
   let hasInterpolations = false;
 
-  while ((match = regex.exec(text)) !== null) {
-    const staticText = text.slice(lastIndex, match.index);
-    if (staticText) {
-      // Restore escaped braces in static text
-      const restoredText = staticText
-        .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-        .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
-      parts.push(restoredText);
+  let index = text.indexOf('{{');
+
+  while (index !== -1) {
+    // Attempt to parse expression
+    let exprEnd = -1;
+    let valid = false;
+    let match;
+
+    try {
+      // Offset is index + 2
+      const ast = acorn.parseExpressionAt(text, index + 2, { ecmaVersion: 2022 });
+      exprEnd = ast.end;
+
+      // Check if followed by }} (allowing whitespace)
+      const after = text.slice(exprEnd);
+      match = after.match(/^\s*\}\}/);
+      if (match) {
+        valid = true;
+      }
+    } catch (e) {
+      // invalid expression
     }
 
-    const expr = match[1].trim();
-    const isReactive = isReactiveExpression(expr);
-    hasReactive || (hasReactive = isReactive);
-    hasInterpolations = true;
-    parts.push({ expr, isReactive });
-    lastIndex = regex.lastIndex;
+    if (valid) {
+      if (index > lastIndex) {
+        const staticText = text.slice(lastIndex, index);
+        // Restore escaped braces in static text
+        const restoredText = staticText
+          .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
+          .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+        parts.push(restoredText);
+      }
+
+      const expr = text.slice(index + 2, exprEnd).trim();
+      const isReactive = isReactiveExpression(expr);
+      hasReactive = hasReactive || isReactive;
+      hasInterpolations = true;
+      parts.push({ expr, isReactive });
+
+      lastIndex = exprEnd + match[0].length;
+      index = text.indexOf('{{', lastIndex);
+    } else {
+      index = text.indexOf('{{', index + 1);
+    }
   }
 
   if (lastIndex < text.length) {
@@ -146,11 +172,14 @@ function parseTextContent(text: string) {
     parts.push(remainingText);
   }
 
+  return { parts, hasReactive, hasInterpolations, escapedOpenBrace, escapedCloseBrace };
+}
+
+function parseTextContent(text: string) {
+  const { parts, hasReactive, hasInterpolations, escapedOpenBrace, escapedCloseBrace } = extractInterpolations(text);
+
   if (!hasInterpolations) {
-    // Restore escaped braces if no interpolations
-    const finalText = text
-      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+    const finalText = parts[0] || ""; // parts will contain the full text if no interpolations
     return {
       code: `document.createTextNode(\`${escapeTemplateLiteral(finalText)}\`)`,
       hasReactive: false,
@@ -198,58 +227,11 @@ function generateTextContentTemplate(
   parent: string,
   prevSibling?: string,
 ): { root: string; static: string; dynamic: string; staticRoot: string } {
-  text = text.trim();
-
-  // First, handle escaped braces by temporarily replacing them
-  const escapedOpenBrace = '\u0001'; // Use control character as placeholder
-  const escapedCloseBrace = '\u0002';
-
-  // Replace escaped braces with placeholders
-  text = text.replace(/\\(\{\{|\}\})/g, (match, braces) => {
-    return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
-  });
-
-  const regex = /\{\{([^}]+)\}\}/g;
-
-  let lastIndex = 0;
-  let match;
-  const parts = [];
-  let hasReactive = false;
-  let hasInterpolations = false;
-
-  while ((match = regex.exec(text)) !== null) {
-    const staticText = text.slice(lastIndex, match.index);
-    if (staticText) {
-      // Restore escaped braces in static text
-      const restoredText = staticText
-        .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-        .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
-      parts.push(restoredText);
-    }
-
-    const expr = match[1].trim();
-    const isReactive = isReactiveExpression(expr);
-    hasReactive || (hasReactive = isReactive);
-    hasInterpolations = true;
-    parts.push({ expr, isReactive });
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    // Restore escaped braces in remaining text
-    const remainingText = text.slice(lastIndex)
-      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
-    parts.push(remainingText);
-  }
-
+  const { parts, hasReactive, hasInterpolations } = extractInterpolations(text);
   const root = makeVariable();
 
   if (!hasInterpolations) {
-    // Restore escaped braces if no interpolations
-    const finalText = text
-      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
+    const finalText = parts[0] || "";
     return {
       static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(finalText)}\`);\n`,
       dynamic: "",
