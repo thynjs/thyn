@@ -599,17 +599,11 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
         continue;
       }
       if (key === "class" || key.includes("-")) {
-        code = createHoisting(
-          `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`,
-          hoist,
-        );
+        code = `__THYN__CORE__.setAttribute(${cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
       } else {
-        code = createHoisting(
-          `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
-          }, "${key}", ${val.raw})`,
-          hoist,
-        );
+        code = `__THYN__CORE__.setProperty(${cloneIfNeeded(code)
+          }, "${key}", ${val.raw})`;
       }
     }
     if (children.length) {
