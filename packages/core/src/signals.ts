@@ -18,7 +18,7 @@ function scheduleEffect(effectFn: EffectFn) {
           runEffectFn(ef);
           currentEffect = prev;
         } else {
-          ef();
+          typeof ef === "function" ? ef() : ef.run();
         }
       }
       pendingEffects.length = 0;
@@ -42,7 +42,7 @@ class SignalImpl<T> {
     if (currentEffect) {
       if (!this.subs) {
         this.subs = currentEffect;
-      } else if (typeof this.subs === "function") {
+      } else if (typeof this.subs === "function" || !this.subs.add) {
         if (this.subs !== currentEffect) {
           const oldEffect = this.subs;
           this.subs = new Set();
@@ -66,7 +66,7 @@ class SignalImpl<T> {
   delete(ef: any): void {
     if (this.subs === ef) {
       this.subs = undefined;
-    } else if (typeof this.subs === "object") {
+    } else if (typeof this.subs === "object" && this.subs.delete) {
       this.subs.delete(ef);
       if (this.subs.size === 0) {
         this.subs = undefined;
@@ -80,7 +80,7 @@ class SignalImpl<T> {
     if (value !== this.value) {
       this.value = value;
       if (this.subs) {
-        if (typeof this.subs === "function") {
+        if (typeof this.subs === "function" || !this.subs.add) {
           scheduleEffect(this.subs);
         } else {
           for (const ef of this.subs) {
@@ -101,7 +101,7 @@ export function $signal<T>(value: T): SignalImpl<T> {
 }
 
 function runEffectFn(ef: EffectFn) {
-  const td = ef();
+  const td = typeof ef === "function" ? ef() : ef.run();
   if (td) {
     if (ef.td) {
       if (Array.isArray(ef.td)) {
@@ -149,4 +149,23 @@ export function cleanup(ef) {
   } else {
     for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
   }
+}
+
+class TextNodeEffect {
+  next: any = undefined;
+  td: any = undefined;
+  constructor(public node: any, public signal: any) { }
+  run() {
+    this.node.data = this.signal.get();
+  }
+}
+
+export function staticTextNodeEffect(node: any, signal: Signal<any>) {
+  const ef = new TextNodeEffect(node, signal);
+  const prev = currentEffect;
+  currentEffect = ef;
+  ef.run();
+  currentEffect = prev;
+  collectEffect(ef);
+  return ef;
 }

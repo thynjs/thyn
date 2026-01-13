@@ -15,5 +15,5 @@ export {
   show,
   terminalList
 } from "./element.js";
-export { $effect, $signal, staticEffect } from "./signals.js";
+export { $effect, $signal, staticEffect, staticTextNodeEffect } from "./signals.js";
 
