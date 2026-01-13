@@ -384,19 +384,6 @@ export function list(props, terminal = false) {
         });
       }
     }
-    if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-      const lastOrdered = childNodes[start + offset - 1];
-      const set = [];
-      for (let i = start; i <= newLength; i++) {
-        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + offset]);
-      }
-      lastOrdered.after(...set);
-      prevItems = nextItems;
-      keyMap = null;
-      nextItems = null;
-      return;
-    }
-
     while (start <= newLength) {
       const newChd = nextItems[start];
       const oldChd = prevItems[start];
@@ -558,20 +545,6 @@ export function isolatedTerminalList(props) {
         });
       }
     }
-    if (newLength === oldLength && keyMap.size > (newLength - start + 1) / 2) {
-      const lastOrdered = childNodes[start];
-      const set = [];
-      for (let i = start; i <= newLength; i++) {
-        set.push(keyMap.get(nextItems[i])?.el ?? childNodes[i + 1]);
-      }
-      lastOrdered.after(...set);
-      prevItems = nextItems;
-      keyMap = null;
-      nextItems = null;
-      childNodes = null;
-      return;
-    }
-
     while (start <= newLength) {
       const newChd = nextItems[start];
       const oldChd = prevItems[start];
