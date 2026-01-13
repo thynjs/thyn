@@ -141,6 +141,18 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
   return fn;
 }
 
+export function staticTextNodeEffect(node: Text, signal: () => string) {
+  const fn = () => {
+    node.data = signal();
+  };
+  const prev = currentEffect;
+  currentEffect = fn;
+  fn();
+  currentEffect = prev;
+  collectEffect(fn);
+  return fn;
+}
+
 export function cleanup(ef) {
   if (typeof ef.td === "function") {
     ef.td();
