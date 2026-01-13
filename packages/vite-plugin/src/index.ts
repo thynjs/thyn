@@ -170,7 +170,7 @@ function parseTextContent(text: string) {
       const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
         ecmaVersion: 2022,
       });
-      if (ast.type === "CallExpression" && !ast.arguments.length) {
+      if (ast.type === "CallExpression" && !ast.arguments.length && ast.callee.type !== "MemberExpression") {
         code = `__THYN__CORE__.createReactiveTextNode(${interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "")})`;
       }
     }
@@ -275,7 +275,7 @@ function generateTextContentTemplate(
       const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
         ecmaVersion: 2022,
       });
-      if (ast.type === "CallExpression" && !ast.arguments.length) {
+      if (ast.type === "CallExpression" && !ast.arguments.length && ast.callee.type !== "MemberExpression") {
         fn = interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "");
       }
     }
