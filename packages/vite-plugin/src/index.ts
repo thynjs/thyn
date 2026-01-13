@@ -30,6 +30,71 @@ async function scopeSelectors(css: string, scopeId: string) {
 
 const DIRECTIVES = ["#for", "#if", "#then", "#else", "#else-if"];
 
+function parseInterpolationParts(text: string): (string | { expr: string; isReactive: boolean })[] {
+  const parts: (string | { expr: string; isReactive: boolean })[] = [];
+  let i = 0;
+
+  while (i < text.length) {
+    const start = text.indexOf('{{', i);
+    if (start === -1) {
+      if (i < text.length) {
+        parts.push(text.slice(i));
+      }
+      break;
+    }
+
+    if (start > i) {
+      parts.push(text.slice(i, start));
+    }
+
+    let braceCount = 0;
+    let j = start + 2;
+    let inString = false;
+    let stringChar = '';
+    let found = false;
+
+    while (j < text.length) {
+      const char = text[j];
+
+      if (inString) {
+        if (char === stringChar && text[j - 1] !== '\\') {
+          inString = false;
+          stringChar = '';
+        }
+      } else {
+        if (char === '"' || char === "'" || char === '`') {
+          inString = true;
+          stringChar = char;
+        } else if (char === '{') {
+          braceCount++;
+        } else if (char === '}') {
+          if (braceCount === 0) {
+            if (text[j + 1] === '}') {
+              found = true;
+              break;
+            }
+          } else {
+            braceCount--;
+          }
+        }
+      }
+      j++;
+    }
+
+    if (found) {
+      const expr = text.slice(start + 2, j).trim();
+      const isReactive = isReactiveExpression(expr);
+      parts.push({ expr, isReactive });
+      i = j + 2;
+    } else {
+      parts.push('{{');
+      i = start + 2;
+    }
+  }
+
+  return parts;
+}
+
 function isReactiveExpression(expr) {
   const ast = acorn.parseExpressionAt(expr, 0, { ecmaVersion: 2022 });
   if (["ArrowFunctionExpression", "FunctionExpression"].includes(ast.type)) {
@@ -113,37 +178,22 @@ function parseTextContent(text: string) {
     return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
   });
 
-  const regex = /\{\{([^}]+)\}\}/g;
-  let lastIndex = 0;
-  let match;
+  const rawParts = parseInterpolationParts(text);
   const parts = [];
   let hasReactive = false;
   let hasInterpolations = false;
 
-  while ((match = regex.exec(text)) !== null) {
-    const staticText = text.slice(lastIndex, match.index);
-    if (staticText) {
-      // Restore escaped braces in static text
-      const restoredText = staticText
+  for (const part of rawParts) {
+    if (typeof part === 'string') {
+      const restoredText = part
         .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
         .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
       parts.push(restoredText);
+    } else {
+      hasInterpolations = true;
+      if (part.isReactive) hasReactive = true;
+      parts.push(part);
     }
-
-    const expr = match[1].trim();
-    const isReactive = isReactiveExpression(expr);
-    hasReactive || (hasReactive = isReactive);
-    hasInterpolations = true;
-    parts.push({ expr, isReactive });
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    // Restore escaped braces in remaining text
-    const remainingText = text.slice(lastIndex)
-      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
-    parts.push(remainingText);
   }
 
   if (!hasInterpolations) {
@@ -209,38 +259,22 @@ function generateTextContentTemplate(
     return braces === '{{' ? escapedOpenBrace : escapedCloseBrace;
   });
 
-  const regex = /\{\{([^}]+)\}\}/g;
-
-  let lastIndex = 0;
-  let match;
+  const rawParts = parseInterpolationParts(text);
   const parts = [];
   let hasReactive = false;
   let hasInterpolations = false;
 
-  while ((match = regex.exec(text)) !== null) {
-    const staticText = text.slice(lastIndex, match.index);
-    if (staticText) {
-      // Restore escaped braces in static text
-      const restoredText = staticText
+  for (const part of rawParts) {
+    if (typeof part === 'string') {
+      const restoredText = part
         .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
         .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
       parts.push(restoredText);
+    } else {
+      hasInterpolations = true;
+      if (part.isReactive) hasReactive = true;
+      parts.push(part);
     }
-
-    const expr = match[1].trim();
-    const isReactive = isReactiveExpression(expr);
-    hasReactive || (hasReactive = isReactive);
-    hasInterpolations = true;
-    parts.push({ expr, isReactive });
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    // Restore escaped braces in remaining text
-    const remainingText = text.slice(lastIndex)
-      .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
-      .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
-    parts.push(remainingText);
   }
 
   const root = makeVariable();
