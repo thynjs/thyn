@@ -1,5 +1,5 @@
 <script>
-  const items = $signal([0, 1, 2]);
+  const items = $signal([$signal(0), $signal(1), $signal(2)]);
   const selected = $signal(1);
 </script>
 
@@ -8,7 +8,7 @@
     start 
   </p>
   <p #for={item in items.get()} class={selected.get() === item ? 'selected' : undefined} id={item}>
-    {{ item }}
+    {{ item.get() }}
   </p>
   <p>
     end
