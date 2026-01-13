@@ -272,11 +272,23 @@ function generateTextContentTemplate(
   if (hasReactive) {
     let fn = `(() => \`${interpolated}\`)`;
     if (parts.length === 1) {
-      const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
+      const expr = interpolated.slice(2, -1);
+      const ast = acorn.parseExpressionAt(expr, 0, {
         ecmaVersion: 2022,
       });
       if (ast.type === "CallExpression" && !ast.arguments.length) {
-        fn = interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "");
+        if (ast.callee.type === "MemberExpression" && ast.callee.property.type === "Identifier" && ast.callee.property.name === "get") {
+           const obj = expr.slice(ast.callee.object.start, ast.callee.object.end);
+           const stat = `const ${root} = document.createTextNode("");\n`;
+           const dynamic = `__THYN__CORE__.staticTextNodeEffect(${textNode}, ${obj});\n`;
+           return {
+             static: stat,
+             dynamic,
+             root: "",
+             staticRoot: root,
+           };
+        }
+        fn = expr.replace(/\(\s*\)\s*$/, "");
       }
     }
     const stat = `const ${root} = document.createTextNode("");\n`;

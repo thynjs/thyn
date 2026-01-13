@@ -116,11 +116,11 @@ function runEffectFn(ef: EffectFn) {
 }
 
 type EffectTeardown = (() => void) | { delete: (v: any) => void };
-type EffectFn = (() => (() => void) | void) & {
+type EffectFn = ((() => (() => void) | void) & {
   mv?: boolean;
   dyn?: boolean;
   td: EffectTeardown | EffectTeardown[];
-}
+}) | any;
 
 export function $effect(fn: (() => (() => void) | void) & any) {
   const prev = currentEffect;
@@ -154,13 +154,13 @@ export function cleanup(ef) {
 class TextNodeEffect {
   next: any = undefined;
   td: any = undefined;
-  constructor(public node: any, public signal: any) { }
+  constructor(public node: Text, public signal: Signal<any>) { }
   run() {
     this.node.data = this.signal.get();
   }
 }
 
-export function staticTextNodeEffect(node: any, signal: Signal<any>) {
+export function staticTextNodeEffect(node: Text, signal: Signal<any>) {
   const ef = new TextNodeEffect(node, signal);
   const prev = currentEffect;
   currentEffect = ef;
