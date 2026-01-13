@@ -30,7 +30,7 @@ export function component(name, props?: any) {
   collectingHead = null;
   const e = name(props);
   const existing = e.$fx;
-  
+
   if (existing) {
     let current = existing;
     while (current) {
@@ -54,7 +54,7 @@ export function component(name, props?: any) {
   } else {
     e.$fx = collectingHead;
   }
-  
+
   collectingHead = prevHead;
   return e;
 }
@@ -177,7 +177,7 @@ function filterEffects(head, predicate) {
   let current = head;
   let filtered = null;
   let filteredTail = null;
-  
+
   while (current) {
     if (predicate(current)) {
       if (!filtered) {
@@ -190,11 +190,11 @@ function filterEffects(head, predicate) {
     }
     current = current.next;
   }
-  
+
   if (filteredTail) {
     filteredTail.next = null;
   }
-  
+
   return filtered;
 }
 
@@ -218,14 +218,14 @@ export function show(props) {
         sticky = filterEffects(prevFx, f => f.mv);
         prevElem.$fx = filterEffects(prevFx, f => !f.mv);
       }
-      
+
       if (sticky) {
         // Find tail of sticky effects
         let stickyTail = sticky;
         while (stickyTail.next) {
           stickyTail = stickyTail.next;
         }
-        
+
         // Append to new element's effects
         if (newElem.$fx) {
           stickyTail.next = newElem.$fx;
@@ -234,7 +234,7 @@ export function show(props) {
           newElem.$fx = sticky;
         }
       }
-      
+
       let td = prevElem;
       queueMicrotask(() => {
         teardown(td);
@@ -290,7 +290,7 @@ export function list(props, terminal = false) {
     const offset = childNodes.indexOf(startBookend) + 1;
     if (!newLength) {
       const removalQueue = [];
-      const end = prevItems.length + 1;
+      const end = prevItems.length + offset;
       for (let i = offset; i < end; i++) {
         const ch = childNodeList[i];
         teardownNode(ch);
@@ -357,9 +357,9 @@ export function list(props, terminal = false) {
       remove(e);
     }
     if (oldLength - start === removalQueue.length) {
-        prevItems = nextItems;
-        nextItems = null;
-        return;
+      prevItems = nextItems;
+      nextItems = null;
+      return;
     }
     let keyMap = new Map();
     for (let i = start; i <= oldLength; i++) {
@@ -530,10 +530,10 @@ export function isolatedTerminalList(props) {
       e.remove();
     }
     if (oldLength - start === removalQueue.length) {
-        prevItems = nextItems;
-        nextItems = null;
-        childNodes = null;
-        return;
+      prevItems = nextItems;
+      nextItems = null;
+      childNodes = null;
+      return;
     }
     let keyMap = new Map();
     for (let i = start; i <= oldLength; i++) {
