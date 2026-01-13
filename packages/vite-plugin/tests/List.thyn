@@ -2,11 +2,11 @@
   const items = $signal([0, 1, 2]);
 </script>
 
-<div onclick={() => items.update(v => v.length === 4 ? [] : [...v, v.length])}>
+<div onclick={() => items(v => v.length === 4 ? [] : [...v, v.length])}>
   <p>
     start 
   </p>
-  <p #for={item in items.get()}>
+  <p #for={item in items()}>
     {{ item }}
   </p>
   <p>

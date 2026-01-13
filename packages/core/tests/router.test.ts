@@ -24,13 +24,13 @@ describe("router", () => {
         { path: "/bar", component: () => component(Div("bar")) },
       ],
     }));
-    router.path.set("/foo");
+    router.path("/foo");
     await wait();
     expect(root.textContent).toBe("foo");
-    router.path.set("/bar");
+    router.path("/bar");
     await wait();
     expect(root.textContent).toBe("bar");
-    router.path.set("/foo");
+    router.path("/foo");
     await wait();
     expect(root.textContent).toBe("foo");
   });
@@ -53,16 +53,16 @@ describe("router", () => {
         },
       ],
     }));
-    router.path.set("/pages/foo");
+    router.path("/pages/foo");
     await wait();
     expect(root.textContent).toBe("foo");
-    router.path.set("/pages/bar");
+    router.path("/pages/bar");
     await wait();
     expect(root.textContent).toBe("bar");
-    router.path.set("/pages/baz");
+    router.path("/pages/baz");
     await wait();
     expect(root.textContent).toBe("baz");
-    router.path.set("/pages/foo");
+    router.path("/pages/foo");
     await wait();
     expect(root.textContent).toBe("foo");
   });

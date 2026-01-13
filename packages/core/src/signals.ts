@@ -27,42 +27,53 @@ function scheduleEffect(effectFn: EffectFn) {
   }
 }
 
-export class Signal<T> {
-  subs = new Set<any>();
+// 1. Define the Overloaded Interface for the Signal function
+export interface Signal<T> {
+  (): T;                                   // Getter
+  (newValue: T): void;                     // Setter
+  (updater: (prev: T) => T): void;         // Updater
+}
 
-  constructor(public value: T) { }
+// 2. Refactor $signal to return the closure
+export function $signal<T>(initialValue: T): Signal<T> {
+  let value = initialValue;
+  const subs = new Set<any>();
 
-  get(): T {
-    if (currentEffect) {
-      this.subs.add(currentEffect);
-      const td = currentEffect.td;
-      if (!td) {
-        currentEffect.td = this.subs;
-      } else if (Array.isArray(td)) {
-        td.push(this.subs);
-      } else {
-        currentEffect.td = [td, this.subs];
+  return function (newValue?: T | ((prev: T) => T)) {
+    // GETTER: No arguments passed
+    if (arguments.length === 0) {
+      if (currentEffect) {
+        subs.add(currentEffect);
+        const td = currentEffect.td;
+        if (!td) {
+          currentEffect.td = subs;
+        } else if (Array.isArray(td)) {
+          td.push(subs);
+        } else {
+          currentEffect.td = [td, subs];
+        }
       }
+      return value;
     }
-    return this.value;
-  }
 
-  set(value: T): void {
-    if (value !== this.value) {
-      this.value = value;
-      for (const sub of this.subs) {
+    // SETTER / UPDATER: Argument passed
+    let nextValue: T;
+
+    // Check if it's an updater function
+    // Note: If T is a function type, this logic assumes it's an updater.
+    if (typeof newValue === "function") {
+      nextValue = (newValue as (prev: T) => T)(value);
+    } else {
+      nextValue = newValue as T;
+    }
+
+    if (nextValue !== value) {
+      value = nextValue;
+      for (const sub of subs) {
         scheduleEffect(sub);
       }
     }
-  }
-
-  update(action: (prev: T) => T): void {
-    this.set(action(this.value));
-  }
-}
-
-export function $signal<T>(value: T): Signal<T> {
-  return new Signal(value);
+  } as Signal<T>;
 }
 
 function runEffectFn(ef: EffectFn) {

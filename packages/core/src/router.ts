@@ -5,7 +5,7 @@ const params = $signal({} as any);
 
 export const router = {
   path: $signal(location.pathname),
-  param: (name: string): string | undefined => params.get()[name],
+  param: (name: string): string | undefined => params()[name],
 };
 
 
@@ -31,7 +31,7 @@ export function Router({ routes }: { routes: Route[] }) {
   });
 
   staticEffect(() => {
-    const pn = router.path.get();
+    const pn = router.path();
     if (pn !== location.pathname) {
       history.pushState({}, "", pn);
     }
@@ -47,14 +47,14 @@ export function Router({ routes }: { routes: Route[] }) {
       rt = route;
       break;
     };
-    current.set(rt);
-    params.set(ps);
+    current(rt);
+    params(ps);
   });
 
   return component(
     show,
     compiledRoutes.map((r) => ({
-      if: () => r === current.get(),
+      if: () => r === current(),
       then: () => component(r.component),
     })),
   );
@@ -74,7 +74,7 @@ export function Link({ slot, to }) {
     ) {
       e.preventDefault();
       history.pushState({}, "", to);
-      router.path.set(to);
+      router.path(to);
     }
   };
   return a;

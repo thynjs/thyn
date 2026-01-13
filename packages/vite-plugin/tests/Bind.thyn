@@ -2,6 +2,6 @@
   const foo = $signal("bar");
 </script>
 
-<div class={foo.get() === 'foo' ? 'danger' : 'bar'}>
+<div class={foo() === 'foo' ? 'danger' : 'bar'}>
 const n={run:t,deps:new Set,td:null}
 </div>

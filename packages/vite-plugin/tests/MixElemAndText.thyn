@@ -4,9 +4,9 @@
 </script>
 
 <div>
-  {{ foo.get() }}
+  {{ foo() }}
   <span>
-    {{ bar.get() }}
+    {{ bar() }}
   </span>
 </div>
 

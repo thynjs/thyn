@@ -9,9 +9,9 @@ describe("runs effect", () => {
     const tdRef = { val: 0 };
     const root = (() => {
       const div = document.createElement("div");
-      $effect(() => { div.textContent = on.get() ? "on" : "off" });
+      $effect(() => { div.textContent = on() ? "on" : "off" });
       $effect(() => {
-        on.get();
+        on();
         runRef.val++;
         return () => {
           tdRef.val++;
@@ -22,7 +22,7 @@ describe("runs effect", () => {
     expect(root.textContent).toBe("on");
     expect(runRef.val).toBe(1);
     expect(tdRef.val).toBe(0);
-    on.set(false);
+    on(false);
     await wait();
     expect(root.textContent).toBe("off");
     expect(runRef.val).toBe(2);

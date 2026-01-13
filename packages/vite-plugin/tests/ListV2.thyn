@@ -3,12 +3,12 @@
   const selected = $signal(1);
 </script>
 
-<div onclick={() => items.update(v => v.length === 4 ? [] : [...v, v.length])}>
+<div onclick={() => items(v => v.length === 4 ? [] : [...v, $signal(v.length)])}>
   <p>
     start 
   </p>
-  <p #for={item in items.get()} class={selected.get() === item ? 'selected' : undefined} id={item}>
-    {{ item.get() }}
+  <p #for={item in items()} class={selected() === item() ? 'selected' : undefined} id={item()}>
+    {{ item() }}
   </p>
   <p>
     end

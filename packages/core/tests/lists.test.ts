@@ -4,7 +4,7 @@ import { wait } from "./utils";
 
 function makeGenericList(signal: any) {
   return list({
-    items: () => signal.get(),
+    items: () => signal(),
     render: (item: number) => {
       const span = document.createElement("span");
       span.textContent = `${item}`;
@@ -15,7 +15,7 @@ function makeGenericList(signal: any) {
 
 function makeIsolatedTerminalList(signal: any) {
   return isolatedTerminalList({
-    items: () => signal.get(),
+    items: () => signal(),
     render: (item: number) => {
       const span = document.createElement("span");
       span.textContent = `${item}`;
@@ -34,7 +34,7 @@ const run = (makeList: any) => describe("list", () => {
   it("removes all", async () => {
     const items = $signal([0, 1]);
     const root = makeList(items);
-    items.set([]);
+    items([]);
     await wait();
     expect(root.textContent).toBe("");
   });
@@ -50,7 +50,7 @@ const run = (makeList: any) => describe("list", () => {
       const div = makeList(items);
       root.append(a, div, b);
       expect(root.textContent).toBe("a0123b");
-      items.set([]);
+      items([]);
       await wait();
       expect(root.textContent).toBe("ab");
     });
@@ -69,7 +69,7 @@ const run = (makeList: any) => describe("list", () => {
       const div = makeList(items);
       root.append(a, b, div, c, d);
       expect(root.textContent).toBe("ab0123cd");
-      items.set([]);
+      items([]);
       await wait();
       expect(root.textContent).toBe("abcd");
     });
@@ -78,7 +78,7 @@ const run = (makeList: any) => describe("list", () => {
   it("stays the same", async () => {
     const items = $signal([0, 1]);
     const root = makeList(items);
-    items.set([0, 1]);
+    items([0, 1]);
     await wait();
     expect(root.textContent).toBe("01");
   });
@@ -86,7 +86,7 @@ const run = (makeList: any) => describe("list", () => {
   it("reverses 2", async () => {
     const items = $signal([0, 1]);
     const root = makeList(items);
-    items.set([1, 0]);
+    items([1, 0]);
     await wait();
     expect(root.textContent).toBe("10");
   });
@@ -94,7 +94,7 @@ const run = (makeList: any) => describe("list", () => {
   it("reverses 3", async () => {
     const items = $signal([0, 1, 2]);
     const root = makeList(items);
-    items.set([2, 1, 0]);
+    items([2, 1, 0]);
     await wait();
     expect(root.textContent).toBe("210");
   });
@@ -102,7 +102,7 @@ const run = (makeList: any) => describe("list", () => {
   it("reverses 4", async () => {
     const items = $signal([0, 1, 2, 3]);
     const root = makeList(items);
-    items.set([3, 2, 1, 0]);
+    items([3, 2, 1, 0]);
     await wait();
     expect(root.textContent).toBe("3210");
   });
@@ -110,7 +110,7 @@ const run = (makeList: any) => describe("list", () => {
   it("removes from start", async () => {
     const items = $signal([0, 1, 2]);
     const root = makeList(items);
-    items.set([1, 2]);
+    items([1, 2]);
     await wait();
     expect(root.textContent).toBe("12");
   });
@@ -118,7 +118,7 @@ const run = (makeList: any) => describe("list", () => {
   it("removes from end", async () => {
     const items = $signal([0, 1, 2]);
     const root = makeList(items);
-    items.set([0, 1]);
+    items([0, 1]);
     await wait();
     expect(root.textContent).toBe("01");
   });
@@ -126,7 +126,7 @@ const run = (makeList: any) => describe("list", () => {
   it("removes from middle", async () => {
     const items = $signal([0, 1, 2]);
     const root = makeList(items);
-    items.set([0, 2]);
+    items([0, 2]);
     await wait();
     expect(root.textContent).toBe("02");
   });
@@ -134,7 +134,7 @@ const run = (makeList: any) => describe("list", () => {
   it("removes from everywhere", async () => {
     const items = $signal([0, 1, 2, 3, 4, 5, 6]);
     const root = makeList(items);
-    items.set([1, 3, 5]);
+    items([1, 3, 5]);
     await wait();
     expect(root.textContent).toBe("135");
   });
@@ -142,7 +142,7 @@ const run = (makeList: any) => describe("list", () => {
   it("adds to start", async () => {
     const items = $signal([1, 2]);
     const root = makeList(items);
-    items.set([0, 1, 2]);
+    items([0, 1, 2]);
     await wait();
     expect(root.textContent).toBe("012");
   });
@@ -150,7 +150,7 @@ const run = (makeList: any) => describe("list", () => {
   it("adds to end", async () => {
     const items = $signal([0, 1]);
     const root = makeList(items);
-    items.set([0, 1, 2]);
+    items([0, 1, 2]);
     await wait();
     expect(root.textContent).toBe("012");
   });
@@ -158,7 +158,7 @@ const run = (makeList: any) => describe("list", () => {
   it("adds to middle", async () => {
     const items = $signal([0, 2]);
     const root = makeList(items);
-    items.set([0, 1, 2]);
+    items([0, 1, 2]);
     await wait();
     expect(root.textContent).toBe("012");
   });
@@ -166,7 +166,7 @@ const run = (makeList: any) => describe("list", () => {
   it("replaces all", async () => {
     const items = $signal([0, 1]);
     const root = makeList(items);
-    items.set([2, 3]);
+    items([2, 3]);
     await wait();
     expect(root.textContent).toBe("23");
   });
@@ -174,7 +174,7 @@ const run = (makeList: any) => describe("list", () => {
   it("sorts", async () => {
     const items = $signal([6, 0, 2, 4, 7, 1, 3, 5]);
     const root = makeList(items);
-    items.set([0, 1, 2, 3, 4, 5, 6, 7]);
+    items([0, 1, 2, 3, 4, 5, 6, 7]);
     await wait();
     expect(root.textContent).toBe("01234567");
   });

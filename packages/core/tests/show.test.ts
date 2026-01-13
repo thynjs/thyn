@@ -12,11 +12,11 @@ describe("show", () => {
   it("if else", async () => {
     const on = $signal(true);
     const root = makeShow([
-      { if: () => on.get(), then: () => document.createTextNode("on") },
+      { if: () => on(), then: () => document.createTextNode("on") },
       { then: () => document.createTextNode("off") },
     ]);
     expect(root.textContent).toBe("on");
-    on.set(false);
+    on(false);
     await wait();
     expect(root.textContent).toBe("off");
   });
@@ -24,11 +24,11 @@ describe("show", () => {
   it("if else-if", async () => {
     const on = $signal(true);
     const root = makeShow([
-      { if: () => on.get(), then: () => document.createTextNode("on") },
-      { if: () => !on.get(), then: () => document.createTextNode("off") },
+      { if: () => on(), then: () => document.createTextNode("on") },
+      { if: () => !on(), then: () => document.createTextNode("off") },
     ]);
     expect(root.textContent).toBe("on");
-    on.set(false);
+    on(false);
     await wait();
     expect(root.textContent).toBe("off");
   });
@@ -36,15 +36,15 @@ describe("show", () => {
   it("if else-if else", async () => {
     const on = $signal("a");
     const root = makeShow([
-      { if: () => on.get() === "a", then: () => document.createTextNode("a") },
-      { if: () => on.get() === "b", then: () => document.createTextNode("b") },
+      { if: () => on() === "a", then: () => document.createTextNode("a") },
+      { if: () => on() === "b", then: () => document.createTextNode("b") },
       { then: () => document.createTextNode("c") },
     ]);
     expect(root.textContent).toBe("a");
-    on.set("b");
+    on("b");
     await wait();
     expect(root.textContent).toBe("b");
-    on.set("");
+    on("");
     await wait();
     expect(root.textContent).toBe("c");
   });
@@ -53,13 +53,13 @@ describe("show", () => {
     const foo = $signal("a");
     const bar = $signal("b");
     const root = makeShow([
-      { if: () => foo.get() === "a", then: () => document.createTextNode("foo") },
-      { if: () => bar.get() === "a", then: () => document.createTextNode("bar") },
+      { if: () => foo() === "a", then: () => document.createTextNode("foo") },
+      { if: () => bar() === "a", then: () => document.createTextNode("bar") },
       { then: () => document.createTextNode("c") },
     ]);
     expect(root.textContent).toBe("foo");
-    foo.set("b")
-    bar.set("a");
+    foo("b")
+    bar("a");
     await wait();
     expect(root.textContent).toBe("bar");
   });

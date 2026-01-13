@@ -2,4 +2,4 @@
   const foo = $signal("foo");
 </script>
 
-<div>${{ foo.get() }}</div>
+<div>${{ foo() }}</div>
