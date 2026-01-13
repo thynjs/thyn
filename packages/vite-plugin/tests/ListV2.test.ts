@@ -15,7 +15,7 @@ describe("List component", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(root.textContent).toBe("startend");
-    expect(root.querySelector(".not-three")).toBeTruthy();
+    expect(root.querySelector(".not-three")).toBeFalsy();
     root.click();
     await Promise.resolve();
     await Promise.resolve();

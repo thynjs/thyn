@@ -12,6 +12,7 @@ function scheduleEffect(effectFn: EffectFn) {
     queueMicrotask(() => {
       for (const ef of pendingEffects) {
         if (ef.dyn) {
+          if (!ef.td) continue;
           cleanup(ef);
           const prev = currentEffect;
           currentEffect = ef;
@@ -93,7 +94,7 @@ export function $effect(fn: (() => (() => void) | void) & any) {
   fn.dyn = true;
   runEffectFn(fn);
   currentEffect = prev;
-  collectEffect(fn);
+  if (fn.td) collectEffect(fn);
   return fn;
 }
 
@@ -103,7 +104,16 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
   currentEffect = fn;
   fn();
   currentEffect = prev;
-  collectEffect(fn);
+  if (fn.td) collectEffect(fn);
+  return fn;
+}
+
+export function standaloneStaticEffect(fn: (() => (() => void) | void) & any) {
+  fn.td = null;
+  const prev = currentEffect;
+  currentEffect = fn;
+  fn();
+  currentEffect = prev;
   return fn;
 }
 

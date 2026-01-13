@@ -1,4 +1,4 @@
-import { $effect, cleanup, staticEffect } from "./signals.js";
+import { $effect, cleanup, staticEffect, standaloneStaticEffect } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());
@@ -80,7 +80,7 @@ export function setReactiveAttribute(el, key, val) {
   let ran;
   return addEffect(
     el,
-    staticEffect(() => {
+    standaloneStaticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) el.removeAttribute(key);
@@ -96,7 +96,7 @@ export function setReactiveProperty(el, key, val) {
   let ran = false;
   return addEffect(
     el,
-    staticEffect(() => {
+    standaloneStaticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) delete el[key];
