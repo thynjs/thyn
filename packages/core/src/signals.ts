@@ -101,9 +101,18 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
   fn.td = null;
   const prev = currentEffect;
   currentEffect = fn;
-  fn();
+  runEffectFn(fn);
   currentEffect = prev;
-  collectEffect(fn);
+  if (fn.td) collectEffect(fn);
+  return fn;
+}
+
+export function uncollectedStaticEffect(fn: (() => (() => void) | void) & any) {
+  fn.td = null;
+  const prev = currentEffect;
+  currentEffect = fn;
+  runEffectFn(fn);
+  currentEffect = prev;
   return fn;
 }
 

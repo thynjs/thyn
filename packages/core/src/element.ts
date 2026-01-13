@@ -1,4 +1,4 @@
-import { $effect, cleanup, staticEffect } from "./signals.js";
+import { $effect, cleanup, staticEffect, uncollectedStaticEffect } from "./signals.js";
 
 export function mount(app, parent) {
   parent.appendChild(app());
@@ -80,7 +80,7 @@ export function setReactiveAttribute(el, key, val) {
   let ran;
   return addEffect(
     el,
-    staticEffect(() => {
+    uncollectedStaticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) el.removeAttribute(key);
@@ -96,7 +96,7 @@ export function setReactiveProperty(el, key, val) {
   let ran = false;
   return addEffect(
     el,
-    staticEffect(() => {
+    uncollectedStaticEffect(() => {
       const v = val();
       if (ran) {
         if (v === undefined) delete el[key];
@@ -122,6 +122,7 @@ export function markAsReactive(el) {
 }
 
 export function addEffect(el, ef) {
+  if (!ef.td) return el;
   if (el.$fx) {
     ef.next = el.$fx;
     el.$fx = ef;
@@ -611,4 +612,3 @@ export function isolatedTerminalList(props) {
   });
   return outlet;
 }
-
