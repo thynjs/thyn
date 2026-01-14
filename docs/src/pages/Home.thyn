@@ -33,7 +33,7 @@
 // App.thyn
 &lt;script&gt;
   const count = $signal(0);
-&lt;\/script&gt;
+&lt;/script&gt;
 
 &lt;button onclick={() =&gt; count(c =&gt; c + 1)}&gt;
   Count: \{{ count() \}}
