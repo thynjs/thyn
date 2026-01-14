@@ -328,11 +328,6 @@ function createHoisting(code: string, hoist: string[]) {
   return id;
 }
 
-function createObjectCode(obj: object): string {
-  const keys = Object.keys(obj);
-  if (!keys.length) return "null";
-  return `{${keys.map((k) => `'${k}': ${obj[k]}`).join(",")}}`;
-}
 
 let varId = 0;
 
@@ -545,18 +540,49 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   let code = "";
   let hasOwnEffects = false;
   if (isComponent) {
-    const props: any = {};
+    const propsParts: string[] = [];
+    let singleSpreadExpression: string | null = null;
+    let spreadCount = 0;
+    let hasRegularProps = false;
+
     for (const [key, val] of Object.entries(attrs)) {
       if (["#for", "#if", "#then", "#else", "#else-if"].includes(key)) {
         continue;
       }
+
+      if (key.startsWith("{") && key.endsWith("}")) {
+        const content = key.slice(1, -1).trim();
+        if (content.startsWith("...")) {
+          propsParts.push(content);
+          singleSpreadExpression = content.slice(3);
+          spreadCount++;
+          continue;
+        }
+      }
+
+      hasRegularProps = true;
       const value = "raw" in val ? val.raw : JSON.stringify(val.quoted);
-      props[key] = value;
+      propsParts.push(`'${key}': ${value}`);
     }
+
     if (children.length) {
-      props.slot = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
+      hasRegularProps = true;
+      const slotValue = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
+      propsParts.push(`'slot': ${slotValue}`);
     }
-    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${createObjectCode(props)})`;
+
+    let propsCode;
+    if (spreadCount === 1 && !hasRegularProps) {
+      propsCode = singleSpreadExpression;
+    } else {
+      if (propsParts.length === 0) {
+        propsCode = "null";
+      } else {
+        propsCode = `{${propsParts.join(", ")}}`;
+      }
+    }
+
+    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${propsCode})`;
   } else {
     code = createHoisting(`document.createElement(${makeArg})`, hoist);
     for (const [key, val] of Object.entries(attrs)) {
