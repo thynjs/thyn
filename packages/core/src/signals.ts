@@ -34,44 +34,22 @@ export interface Signal<T> {
   (updater: (prev: T) => T): void;         // Updater
 }
 
-// 2. Refactor $signal to return the closure
 export function $signal<T>(initialValue: T): Signal<T> {
   let value = initialValue;
   const subs = new Set<any>();
-
   return function (newValue?: T | ((prev: T) => T)) {
-    // GETTER: No arguments passed
-    if (arguments.length === 0) {
+    if (!arguments.length) {
       if (currentEffect) {
         subs.add(currentEffect);
         const td = currentEffect.td;
-        if (!td) {
-          currentEffect.td = subs;
-        } else if (Array.isArray(td)) {
-          td.push(subs);
-        } else {
-          currentEffect.td = [td, subs];
-        }
+        currentEffect.td = !td ? subs : (Array.isArray(td) ? (td.push(subs), td) : [td, subs]);
       }
       return value;
     }
-
-    // SETTER / UPDATER: Argument passed
-    let nextValue: T;
-
-    // Check if it's an updater function
-    // Note: If T is a function type, this logic assumes it's an updater.
-    if (typeof newValue === "function") {
-      nextValue = (newValue as (prev: T) => T)(value);
-    } else {
-      nextValue = newValue as T;
-    }
-
-    if (nextValue !== value) {
-      value = nextValue;
-      for (const sub of subs) {
-        scheduleEffect(sub);
-      }
+    newValue = typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue as T;
+    if (newValue !== value) {
+      value = newValue as T;
+      subs.forEach(scheduleEffect);
     }
   } as Signal<T>;
 }

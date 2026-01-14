@@ -4,7 +4,7 @@
   import GettingStarted from "./docs/GettingStarted.thyn";
 </script>
 
-  <Router routes={[
-    { path: "/", component: Home },
-    { path: "/docs/getting-started", component: GettingStarted },
-  ]} />
+<Router routes={[
+  { path: "/", component: Home },
+  { path: "/docs/getting-started", component: GettingStarted },
+]} />
