@@ -546,17 +546,33 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   let hasOwnEffects = false;
   if (isComponent) {
     const props: any = {};
+    let spreadProp: string | null = null;
+    let propCount = 0;
+
     for (const [key, val] of Object.entries(attrs)) {
       if (["#for", "#if", "#then", "#else", "#else-if"].includes(key)) {
         continue;
       }
+      if (key.startsWith("{...") && key.endsWith("}")) {
+        spreadProp = key.slice(4, -1);
+      }
       const value = "raw" in val ? val.raw : JSON.stringify(val.quoted);
       props[key] = value;
+      propCount++;
     }
     if (children.length) {
       props.slot = `[${children.map((c) => cloneIfNeeded(c.code)).join(", ")}]`;
+      propCount++;
     }
-    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${createObjectCode(props)})`;
+
+    let propsCode;
+    if (propCount === 1 && spreadProp) {
+      propsCode = spreadProp;
+    } else {
+      propsCode = createObjectCode(props);
+    }
+
+    code = `__THYN__CORE__.${hasComponentChildren ? 'component' : 'fixedComponent'}(${makeArg}, ${propsCode})`;
   } else {
     code = createHoisting(`document.createElement(${makeArg})`, hoist);
     for (const [key, val] of Object.entries(attrs)) {
