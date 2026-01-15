@@ -407,9 +407,8 @@ function makeTemplate(
         code += `__THYN__CORE__.staticEffect(() => {
             const val = ${val.raw};
             if (val !== ${prev}) {
-              if (val) ${dynRoot}.className = val;
-              else ${dynRoot}.removeAttribute("class")
-              ${prev} = val;
+              if (${prev} = val) ${dynRoot}.className = val;
+              else ${dynRoot}.removeAttribute("class");
             }
           });\n`;
         continue;

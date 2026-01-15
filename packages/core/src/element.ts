@@ -93,7 +93,7 @@ export function setReactiveAttribute(el, key, val) {
   );
 }
 export function setReactiveProperty(el, key, val) {
-  let ran = false;
+  let ran;
   return addEffect(
     el,
     uncollectedStaticEffect(() => {
@@ -134,15 +134,15 @@ export function addEffect(el, ef) {
 
 function shallowTeardown(elem) {
   let current = elem.$fx;
-  let prev;
+  if (!current) return;
+  elem.$fx = undefined;
   while (current) {
+    const next = current.next;
     cleanup(current);
     current.td = null;
-    prev = current;
-    current = current.next;
-    prev.next = undefined;
+    current.next = undefined;
+    current = next;
   }
-  elem.$fx = undefined;
 }
 
 function teardown(elem, iterating = false) {
