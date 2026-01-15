@@ -28,7 +28,7 @@ async function scopeSelectors(css: string, scopeId: string) {
   return result.css;
 }
 
-const DIRECTIVES = ["#for", "#if", "#then", "#else", "#else-if"];
+const DIRECTIVES = ["#for", "#if", "#then", "#else", "#else-if", "#props"];
 
 function isReactiveExpression(expr) {
   const ast = acorn.parseExpressionAt(expr, 0, { ecmaVersion: 2022 });
@@ -87,7 +87,7 @@ function parseAttributes(el) {
       const reactive = value && isReactiveExpression(value);
       if (
         reactive && name !== ":#for" && name !== ":#if" &&
-        name !== ":#else-if" && name !== ":#else"
+        name !== ":#else-if" && name !== ":#else" && name !== ":#props"
       ) {
         value = `() => ${value}`;
         result[name.slice(1)] = { raw: value.replace(new RegExp(DOUBLE_QUOTE, "g"), '"') };
@@ -545,15 +545,16 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
   let hasOwnEffects = false;
   if (isComponent) {
     const props: any = {};
-    let spreadProp: string | null = null;
+    let propsDirective: string | null = null;
     let propCount = 0;
 
     for (const [key, val] of Object.entries(attrs)) {
       if (["#for", "#if", "#then", "#else", "#else-if"].includes(key)) {
         continue;
       }
-      if (key.startsWith("{...") && key.endsWith("}")) {
-        spreadProp = key.slice(4, -1);
+      if (key === "#props") {
+        propsDirective = "raw" in val ? val.raw : JSON.stringify(val.quoted);
+        continue;
       }
       const value = "raw" in val ? val.raw : JSON.stringify(val.quoted);
       props[key] = value;
@@ -565,8 +566,8 @@ function walk(node, hoist: string[], siblings?: Node[], index?: number) {
     }
 
     let propsCode;
-    if (propCount === 1 && spreadProp) {
-      propsCode = spreadProp;
+    if (propsDirective) {
+      propsCode = propsDirective;
     } else {
       propsCode = createObjectCode(props);
     }
