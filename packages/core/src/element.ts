@@ -452,9 +452,10 @@ export function isolatedTerminalList(props) {
     }
     const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     if (!newLength) {
-      const end = childNodeList.length - 1;
-      for (let i = 1; i < end; i++) {
-        shallowTeardown(childNodeList[i]);
+      let node = startBookend.nextSibling
+      while (node !== endBookend) {
+        shallowTeardown(node);
+        node = node.nextSibling;
       }
       parent.textContent = "";
       parent.append(startBookend, endBookend);

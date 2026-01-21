@@ -106,6 +106,7 @@ export function uncollectedStaticEffect(fn: (() => (() => void) | void) & any) {
 }
 
 export function cleanup(ef) {
+  if (!ef.td) return;
   if (ef.td.delete) {
     ef.td.delete(ef);
   } else if (typeof ef.td === "function") {
