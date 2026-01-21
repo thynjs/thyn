@@ -26,12 +26,12 @@ npm run dev
   const count = $signal(0);
 
   $effect(() => {
-    console.log(`Count is ${count.get()}`);
+    console.log(`Count is ${count()}`);
   });
 </script>
 
-<button onclick={() => count.update(c => c + 1)}>
-  Count: {{ count.get() }}
+<button onclick={() => count(c => c + 1)}>
+  Count: {{ count() }}
 </button>
 
 <style>
