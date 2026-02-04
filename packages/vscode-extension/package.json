@@ -1,9 +1,9 @@
 {
   "name": "thyn",
   "displayName": "Thyn",
-  "description": "Syntax highlighting for Thyn",
+  "description": "Language support for Thyn",
   "publisher": "thyn",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "url": "https://github.com/thynjs/thyn"
   },
@@ -13,6 +13,10 @@
   "categories": [
     "Programming Languages"
   ],
+  "activationEvents": [
+    "onLanguage:thyn"
+  ],
+  "main": "./out/extension.js",
   "contributes": {
     "languages": [{
       "id": "thyn",
@@ -25,5 +29,16 @@
       "scopeName": "text.html.thyn",
       "path": "./syntaxes/thyn.tmLanguage.json"
     }]
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
   }
 }

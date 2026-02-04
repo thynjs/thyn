@@ -1,7 +1,7 @@
 import * as acorn from "acorn";
 import * as acornwalk from "acorn-walk";
 import * as esbuild from "esbuild";
-import { JSDOM } from "jsdom";
+import { parseHTML } from "./html-parser.js";
 import MagicString from "magic-string";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
@@ -698,15 +698,6 @@ function hasComponentChildren(node: Element): boolean {
   );
 }
 
-const forcedChildren = new Map([
-  ["tbody", "tr"],
-  ["thead", "tr"],
-  ["tfoot", "tr"],
-  ["ul", "li"],
-  ["ol", "li"],
-  ["select", "option"],
-]);
-
 const COMPONENT_TAG_REGEX =
   /<\/?([A-Z][a-zA-Z0-9]*)(\s(?:[^"'<>\/]|"[^"]*"|'[^']*')*)?(\/?)>/g;
 
@@ -809,32 +800,6 @@ function preserveCamelCaseAttributes(html: string): string {
 
 function addComponentAttributes(html: string): string {
   let processedHTML = html;
-  for (const [parentTag, childTag] of forcedChildren) {
-    const parentRegex = new RegExp(
-      `<${parentTag}([^>]*)>([\\s\\S]*?)<\\/${parentTag}>`,
-      "gis",
-    );
-
-    processedHTML = processedHTML.replace(
-      parentRegex,
-      (match, attributes, content) => {
-        const processedContent = content.replace(
-          COMPONENT_TAG_REGEX,
-          (componentMatch, componentName, attributes, selfClose) => {
-            const isClosing = componentMatch.startsWith("</");
-            return isClosing
-              ? `</${childTag}>`
-              : selfClose
-                ? `<${childTag}${attributes || ""
-                } __thyn_component="${componentName}"/>`
-                : `<${childTag}${attributes || ""
-                } __thyn_component="${componentName}">`;
-          },
-        );
-        return `<${parentTag}${attributes}>${processedContent}</${parentTag}>`;
-      },
-    );
-  }
 
   processedHTML = processedHTML.replace(
     COMPONENT_TAG_REGEX,
@@ -929,12 +894,9 @@ function removeUnusedThynVars(code: string): string {
 
 async function transformHTMLtoJSX(html: string, style: string) {
   const scopeId = `thyn-${(styleId++).toString(36)}`;
-  const div = new JSDOM("").window.document.createElement("div");
   const processedHTML = preprocessHTML(html);
-  div.innerHTML = "<template>" + processedHTML + "</template>";
-  const template = div.firstElementChild;
-  const rootElement =
-    (template as HTMLTemplateElement).content.firstElementChild;
+  const template = parseHTML("<template>" + processedHTML + "</template>");
+  const rootElement = template.content.firstElementChild;
 
   let scopedStyle = null;
   if (style) {
@@ -942,13 +904,13 @@ async function transformHTMLtoJSX(html: string, style: string) {
     scopedStyle = await scopeSelectors(style, scopeId);
   }
 
-  if (hasComponentChildren(rootElement)) {
+  if (hasComponentChildren(rootElement as any)) {
     const hoist = [];
-    const { code } = walk(rootElement, hoist);
+    const { code } = walk(rootElement as any, hoist);
     const root = makeVariable();
     return [root, `const ${root} = ${code};`, hoist, scopedStyle];
   }
-  const { root, static: tmpl, dynamic } = makeTemplate(rootElement);
+  const { root, static: tmpl, dynamic } = makeTemplate(rootElement as any);
   const hoist = [`
   let __THYN__template;
   function __THYN__template_generate() {
