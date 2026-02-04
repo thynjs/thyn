@@ -1,10 +1,10 @@
 import * as acorn from "acorn";
 import * as acornwalk from "acorn-walk";
 import * as esbuild from "esbuild";
-import { parseHTML } from "./html-parser.js";
 import MagicString from "magic-string";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
+import { parseHTML } from "./html-parser.js";
 import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
 
 async function scopeSelectors(css: string, scopeId: string) {
@@ -270,18 +270,20 @@ function generateTextContentTemplate(
     : `${parent}.firstChild`;
 
   if (hasReactive) {
-    let fn = `(() => \`${interpolated}\`)`;
+    let fn = `\`${interpolated}\``;
     if (parts.length === 1) {
       const ast = acorn.parseExpressionAt(interpolated.slice(2, -1), 0, {
         ecmaVersion: 2022,
       });
       if (ast.type === "CallExpression" && !ast.arguments.length) {
-        fn = interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "");
+        fn = interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "") + "()";
+      } else {
+        fn = interpolated;
       }
     }
     const stat = `const ${root} = document.createTextNode("");\n`;
     const dynamic = `__THYN__CORE__.staticEffect(() => {
-      ${textNode}.nodeValue = ${fn}();
+      ${textNode}.nodeValue = ${fn};
     });\n`;
     return {
       static: stat,
@@ -415,7 +417,7 @@ function makeTemplate(
       }
       if (key.includes("-")) {
         const ran = makeVariable();
-        code += `let ${ran} = false;\n`;
+        code += `let ${ran};\n`;
         code += `__THYN__CORE__.staticEffect(() => {
             const val = ${val.raw};
             if (val === undefined) {
@@ -428,15 +430,14 @@ function makeTemplate(
             ${ran} = true;
           });\n`;
       } else {
+        const ran = makeVariable();
+        code += `let ${ran} = false;\n`;
         code += `__THYN__CORE__.staticEffect(() => {
           const val = ${val.raw};
-          if (val === undefined) {
-            if (${dynRoot}.${key}) {
-              delete ${dynRoot}.${key};
-            }
-          } else {
+          if (val || ${ran}) {
             ${dynRoot}.${key} = val;\n
           }
+          ${ran} = true;
         });\n`;
       }
       continue;
