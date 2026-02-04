@@ -1,0 +1,29 @@
+{
+  "name": "thyn",
+  "displayName": "Thyn",
+  "description": "Syntax highlighting for Thyn",
+  "publisher": "thyn",
+  "version": "0.0.1",
+  "repository": {
+    "url": "https://github.com/thynjs/thyn"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "thyn",
+      "aliases": ["Thyn", "thyn"],
+      "extensions": [".thyn"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "thyn",
+      "scopeName": "text.html.thyn",
+      "path": "./syntaxes/thyn.tmLanguage.json"
+    }]
+  }
+}

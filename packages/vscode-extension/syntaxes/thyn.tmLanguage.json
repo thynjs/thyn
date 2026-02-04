@@ -1,0 +1,217 @@
+{
+  "scopeName": "text.html.thyn",
+  "fileTypes": ["thyn"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#script-block" },
+    { "include": "#style-block" },
+    { "include": "#tags" },
+    { "include": "#text-interpolation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "begin": "<!--",
+          "end": "-->",
+          "name": "comment.block.html"
+        }
+      ]
+    },
+    "script-block": {
+      "begin": "(<)(script)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.script.html" }
+      },
+      "end": "(</)(script)(>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.script.html" },
+        "3": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "patterns": [
+        {
+          "begin": ">",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.tag.end.html" }
+          },
+          "end": "(?=</script>)",
+          "contentName": "source.js",
+          "patterns": [{ "include": "source.js" }]
+        },
+        { "include": "#tag-attributes" }
+      ]
+    },
+    "style-block": {
+      "begin": "(<)(style)\\b",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.style.html" }
+      },
+      "end": "(</)(style)(>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.html" },
+        "2": { "name": "entity.name.tag.style.html" },
+        "3": { "name": "punctuation.definition.tag.end.html" }
+      },
+      "patterns": [
+        {
+          "begin": ">",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.tag.end.html" }
+          },
+          "end": "(?=</style>)",
+          "contentName": "source.css",
+          "patterns": [{ "include": "source.css" }]
+        },
+        { "include": "#tag-attributes" }
+      ]
+    },
+    "tags": {
+      "patterns": [
+        {
+          "begin": "(</?)([-_a-zA-Z0-9:.]+)",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.tag.begin.html" },
+            "2": { "name": "entity.name.tag.html" }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.tag.end.html" }
+          },
+          "patterns": [
+            { "include": "#tag-attributes-with-expr" }
+          ]
+        }
+      ]
+    },
+    "tag-attributes-with-expr": {
+      "patterns": [
+        { "include": "#thyn-directives" },
+        { "include": "#attribute-expression-assignment" },
+        { "include": "#event-handlers" },
+        { "include": "#standard-attributes" },
+        { "include": "#attribute-assignment" },
+        { "include": "#attribute-value-no-expr" }
+      ]
+    },
+    "attribute-expression-assignment": {
+      "begin": "(=)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.separator.key-value.html" },
+        "2": { "name": "punctuation.section.embedded.begin.thyn" }
+      },
+      "end": "(?<=\\})",
+      "patterns": [
+        { "include": "#balanced-braces-in-attr" },
+        { "include": "source.js" }
+      ]
+    },
+    "tag-attributes": {
+      "patterns": [
+        { "include": "#thyn-directives" },
+        { "include": "#event-handlers" },
+        { "include": "#standard-attributes" },
+        { "include": "#attribute-assignment" },
+        { "include": "#attribute-value-no-expr" }
+      ]
+    },
+    "thyn-directives": {
+      "patterns": [
+        {
+          "match": "(#)(if|else|for|props)\\b",
+          "captures": {
+            "1": { "name": "punctuation.definition.keyword.thyn" },
+            "2": { "name": "keyword.control.directive.thyn" }
+          }
+        },
+        {
+          "match": "(#)([-_a-zA-Z0-9]+)",
+          "captures": {
+            "1": { "name": "punctuation.definition.keyword.thyn" },
+            "2": { "name": "entity.other.attribute-name.directive.thyn" }
+          }
+        }
+      ]
+    },
+    "event-handlers": {
+       "match": "\\bon[-a-zA-Z0-9]+\\b",
+       "name": "entity.other.attribute-name.event.thyn"
+    },
+    "standard-attributes": {
+       "match": "[-_a-zA-Z0-9:.]+",
+       "name": "entity.other.attribute-name.html"
+    },
+    "attribute-assignment": {
+        "match": "=",
+        "name": "punctuation.separator.key-value.html"
+    },
+    "attribute-value-no-expr": {
+      "patterns": [
+        { "include": "#attribute-value-double-quote" },
+        { "include": "#attribute-value-single-quote" },
+        { "include": "#attribute-value-unquoted" }
+      ]
+    },
+    "balanced-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#balanced-braces" },
+        { "include": "source.js" }
+      ]
+    },
+    "balanced-braces-in-attr": {
+      "begin": "\\{",
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.embedded.end.thyn" }
+      },
+      "patterns": [
+        { "include": "#balanced-braces-in-attr" },
+        { "include": "source.js" }
+      ]
+    },
+    "attribute-value-double-quote": {
+      "begin": "\"",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.html" }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.html" }
+      },
+      "name": "string.quoted.double.html",
+      "patterns": [{ "include": "#text-interpolation" }]
+    },
+    "attribute-value-single-quote": {
+      "begin": "'",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.html" }
+      },
+      "end": "'",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.html" }
+      },
+      "name": "string.quoted.single.html",
+      "patterns": [{ "include": "#text-interpolation" }]
+    },
+    "attribute-value-unquoted": {
+      "match": "[^\\s/>=]+",
+      "name": "string.unquoted.html"
+    },
+    "text-interpolation": {
+      "begin": "\\{\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.begin.thyn" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.template-expression.end.thyn" }
+      },
+      "contentName": "source.js",
+      "patterns": [{ "include": "source.js" }]
+    }
+  }
+}
