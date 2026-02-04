@@ -278,7 +278,7 @@ function generateTextContentTemplate(
       if (ast.type === "CallExpression" && !ast.arguments.length) {
         fn = interpolated.slice(2, -1).replace(/\(\s*\)\s*$/, "") + "()";
       } else {
-        fn = interpolated;
+        fn = interpolated.slice(2, -1);
       }
     }
     const stat = `const ${root} = document.createTextNode("");\n`;
