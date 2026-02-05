@@ -35,23 +35,24 @@ export interface Signal<T> {
 }
 
 export function $signal<T>(initialValue: T): Signal<T> {
-  let value = initialValue;
-  const subs = new Set<any>();
-  return function (newValue?: T | ((prev: T) => T)) {
+  const s = function (newValue) {
     if (!arguments.length) {
       if (currentEffect) {
-        subs.add(currentEffect);
+        s.subs.add(currentEffect);
         const td = currentEffect.td;
-        currentEffect.td = !td ? subs : (Array.isArray(td) ? (td.push(subs), td) : [td, subs]);
+        currentEffect.td = !td ? s.subs : (Array.isArray(td) ? (td.push(s.subs), td) : [td, s.subs]);
       }
-      return value;
+      return s.value;
     }
-    newValue = typeof newValue === "function" ? (newValue as (prev: T) => T)(value) : newValue as T;
-    if (newValue !== value) {
-      value = newValue as T;
-      subs.forEach(scheduleEffect);
+    newValue = typeof newValue === "function" ? newValue(s.value) : newValue;
+    if (newValue !== s.value) {
+      s.value = newValue;
+      s.subs.forEach(scheduleEffect);
     }
-  } as Signal<T>;
+  };
+  s.value = initialValue;
+  s.subs = new Set();
+  return s as unknown as Signal<T>;
 }
 
 function runEffectFn(ef: EffectFn) {

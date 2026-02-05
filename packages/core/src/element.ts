@@ -1,5 +1,7 @@
 import { $effect, cleanup, staticEffect, uncollectedStaticEffect } from "./signals.js";
 
+const MAX_SAFE_SPREAD = 10000;
+
 export function mount(app, parent) {
   parent.appendChild(app());
 }
@@ -333,17 +335,6 @@ export function list(props, terminal = false) {
       return;
     }
 
-    if (start >= newLength) {
-      while (start < oldLength) {
-        const e = childNodes[offset + --oldLength];
-        teardownNode(e);
-        remove(e);
-      }
-      prevItems = nextItems;
-      nextItems = null;
-      return;
-    }
-
     // suffix
     for (
       oldLength--, newLength--;
@@ -438,14 +429,28 @@ export function isolatedTerminalList(props) {
     parent = startBookend.parentNode;
     if (!parent) {
       prevItems = props.items();
-      outlet.append(startBookend, ...prevItems.map(render), endBookend);
+      if (prevItems.length <= MAX_SAFE_SPREAD) {
+        outlet.append(startBookend, ...prevItems.map(render), endBookend);
+      } else {
+        outlet.appendChild(startBookend);
+        for (const item of prevItems) {
+          outlet.appendChild(render(item));
+        }
+        outlet.appendChild(endBookend);
+      }
       return;
     }
     let nextItems = props.items();
     let newLength = nextItems.length;
     let oldLength = prevItems.length;
     if (!oldLength && newLength) {
-      endBookend.before(...nextItems.map(render))
+      if (newLength <= MAX_SAFE_SPREAD) {
+        endBookend.before(...nextItems.map(render))
+      } else {
+        for (const item of nextItems) {
+          parent.insertBefore(render(item), endBookend);
+        }
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -465,35 +470,28 @@ export function isolatedTerminalList(props) {
     }
 
     let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
-    if (start === oldLength) {
-      endBookend.before(...nextItems.slice(start).map(render));
+    if (start === oldLength) { // append items
+      if (newLength <= MAX_SAFE_SPREAD) {
+        endBookend.before(...nextItems.slice(start).map(render));
+      } else {
+        for (let i = start; i < newLength; i++) {
+          parent.insertBefore(render(nextItems[i]), endBookend);
+        }
+      }
       prevItems = nextItems;
       nextItems = null;
       return;
     }
 
-    let childNodes = Array.from(childNodeList);
-    if (start < 0) {
-      for (let i = nextItems.length; i < oldLength; i++) {
-        const e = childNodes[1 + --oldLength];
-        shallowTeardown(e);
-        e.remove();
+    if (start < 0) { // truncation
+      let removeCount = oldLength - newLength;
+      while (removeCount-- > 0) {
+        const node = endBookend.previousSibling;
+        shallowTeardown(node);
+        node.remove();
       }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
-      return;
-    }
-
-    if (start >= newLength) {
-      while (start < oldLength) {
-        const e = childNodes[1 + --oldLength];
-        shallowTeardown(e);
-        e.remove();
-      }
-      prevItems = nextItems;
-      nextItems = null;
-      childNodes = null;
       return;
     }
 
@@ -507,27 +505,40 @@ export function isolatedTerminalList(props) {
     );
 
     const nextKeys = new Set(nextItems);
-    const removalQueue = [];
+    const removalQueueIndices = [];
     for (let i = start; i <= oldLength; i++) {
       if (!nextKeys.has(prevItems[i])) {
-        const ch = childNodes[i + 1];
-        shallowTeardown(ch);
-        removalQueue.push(ch);
-        childNodes[i + 1] = null;
+        removalQueueIndices.push(i + 1);
       }
     }
-    if (removalQueue.length === prevItems.length) {
+    if (removalQueueIndices.length === prevItems.length) { // replace all
+      let node = startBookend.nextSibling;
+      while (node !== endBookend) {
+        shallowTeardown(node);
+        node = node.nextSibling;
+      }
       parent.textContent = "";
-      parent.append(startBookend, ...nextItems.map(render), endBookend);
+      if (nextItems.length <= MAX_SAFE_SPREAD) {
+        parent.append(startBookend, ...nextItems.map(render), endBookend);
+      } else {
+        parent.appendChild(startBookend);
+        for (const item of nextItems) {
+          parent.appendChild(render(item));
+        }
+        parent.appendChild(endBookend);
+      }
       prevItems = nextItems;
       nextItems = null;
-      childNodes = null;
       return;
     }
-    for (const e of removalQueue) {
-      e.remove();
+    let childNodes = Array.from(childNodeList);
+    for (const i of removalQueueIndices) {
+      const ch = childNodes[i];
+      shallowTeardown(ch);
+      ch.remove();
+      childNodes[i] = null;
     }
-    if (oldLength - start === removalQueue.length) {
+    if (oldLength - start === removalQueueIndices.length) {
       prevItems = nextItems;
       nextItems = null;
       childNodes = null;
@@ -565,7 +576,9 @@ export function isolatedTerminalList(props) {
         if (oldDom !== el) {
           const tmp = el.nextSibling;
           parent.insertBefore(el, oldDom);
-          parent.insertBefore(oldDom, tmp);
+          if (oldDom !== tmp) {
+            parent.insertBefore(oldDom, tmp);
+          }
         } else if (item !== newChd) {
           replaceWith(newChd, el, render);
         }
