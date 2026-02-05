@@ -90,6 +90,7 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 export function staticEffect(fn: (() => (() => void) | void) & any) {
   const prev = currentEffect;
   currentEffect = fn;
+  fn.td = null;
   fn();
   currentEffect = prev;
   collectEffect(fn);
@@ -99,6 +100,7 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
 export function uncollectedStaticEffect(fn: (() => (() => void) | void) & any) {
   const prev = currentEffect;
   currentEffect = fn;
+  fn.td = null;
   fn();
   currentEffect = prev;
   return fn;
