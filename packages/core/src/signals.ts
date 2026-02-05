@@ -88,7 +88,6 @@ export function $effect(fn: (() => (() => void) | void) & any) {
 }
 
 export function staticEffect(fn: (() => (() => void) | void) & any) {
-  fn.td = null;
   const prev = currentEffect;
   currentEffect = fn;
   fn();
@@ -98,7 +97,6 @@ export function staticEffect(fn: (() => (() => void) | void) & any) {
 }
 
 export function uncollectedStaticEffect(fn: (() => (() => void) | void) & any) {
-  fn.td = null;
   const prev = currentEffect;
   currentEffect = fn;
   fn();
@@ -107,12 +105,13 @@ export function uncollectedStaticEffect(fn: (() => (() => void) | void) & any) {
 }
 
 export function cleanup(ef) {
-  if (!ef.td) return;
-  if (ef.td.delete) {
-    ef.td.delete(ef);
-  } else if (typeof ef.td === "function") {
-    ef.td();
+  const td = ef.td;
+  if (!td) return;
+  if (td.delete) {
+    td.delete(ef);
+  } else if (typeof td === "function") {
+    td();
   } else {
-    for (const f of ef.td) typeof f === "function" ? f() : f.delete(ef);
+    for (const f of td) typeof f === "function" ? f() : f.delete(ef);
   }
 }
