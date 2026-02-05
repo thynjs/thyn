@@ -136,14 +136,9 @@ export function addEffect(el, ef) {
 
 function shallowTeardown(elem) {
   let current = elem.$fx;
-  if (!current) return;
-  elem.$fx = undefined;
   while (current) {
-    const next = current.next;
     cleanup(current);
-    current.td = null;
-    current.next = undefined;
-    current = next;
+    current = current.next;
   }
 }
 
