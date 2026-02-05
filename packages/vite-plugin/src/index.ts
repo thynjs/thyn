@@ -917,7 +917,6 @@ async function transformHTMLtoJSX(html: string, style: string) {
   function __THYN__template_generate() {
     if (!__THYN__template) {
       ${tmpl}
-      return __THYN__template;
     }
     return __THYN__template.cloneNode(true);
   }`];
