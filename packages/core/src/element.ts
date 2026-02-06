@@ -450,7 +450,6 @@ export function isolatedTerminalList(props) {
       nextItems = null;
       return;
     }
-    const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     if (!newLength) {
       let node = startBookend.nextSibling
       while (node !== endBookend) {
@@ -464,7 +463,11 @@ export function isolatedTerminalList(props) {
       return;
     }
 
-    let start = nextItems.findIndex((item, index) => prevItems[index] !== item);
+    let start = 0;
+    const minLen = Math.min(oldLength, newLength);
+    while (start < minLen && prevItems[start] === nextItems[start]) {
+      start++;
+    }
     if (start === oldLength) { // append items
       if (newLength <= MAX_SAFE_SPREAD) {
         endBookend.before(...nextItems.slice(start).map(render));
@@ -499,7 +502,7 @@ export function isolatedTerminalList(props) {
       oldLength--, newLength--
     );
 
-    const nextKeys = new Set(nextItems);
+    const nextKeys = new Set(nextItems.slice(start, newLength + 1));
     const removalQueueIndices = [];
     for (let i = start; i <= oldLength; i++) {
       if (!nextKeys.has(prevItems[i])) {
@@ -526,6 +529,7 @@ export function isolatedTerminalList(props) {
       nextItems = null;
       return;
     }
+    const childNodeList = parent.childNodes as NodeListOf<ChildNode>;
     let childNodes = Array.from(childNodeList);
     for (const i of removalQueueIndices) {
       const ch = childNodes[i];

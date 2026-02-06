@@ -5,25 +5,27 @@ let currentEffect: any;
 let isBatching: boolean | undefined;
 const pendingEffects = [];
 
+function runEffects() {
+  for (const ef of pendingEffects) {
+    if (ef.dyn) {
+      cleanup(ef);
+      const prev = currentEffect;
+      currentEffect = ef;
+      runEffectFn(ef);
+      currentEffect = prev;
+    } else {
+      ef();
+    }
+  }
+  pendingEffects.length = 0;
+  isBatching = false;
+}
+
 function scheduleEffect(effectFn: EffectFn) {
   pendingEffects.push(effectFn);
   if (!isBatching) {
     isBatching = true;
-    queueMicrotask(() => {
-      for (const ef of pendingEffects) {
-        if (ef.dyn) {
-          cleanup(ef);
-          const prev = currentEffect;
-          currentEffect = ef;
-          runEffectFn(ef);
-          currentEffect = prev;
-        } else {
-          ef();
-        }
-      }
-      pendingEffects.length = 0;
-      isBatching = false;
-    });
+    queueMicrotask(runEffects);
   }
 }
 
@@ -34,9 +36,11 @@ export interface Signal<T> {
   (updater: (prev: T) => T): void;         // Updater
 }
 
+const SENTINEL = Symbol();
+
 export function $signal<T>(initialValue: T): Signal<T> {
-  const s = function (newValue) {
-    if (!arguments.length) {
+  const s = (newValue: any = SENTINEL) => {
+    if (newValue === SENTINEL) {
       if (currentEffect) {
         s.subs.add(currentEffect);
         const td = currentEffect.td;
@@ -44,7 +48,7 @@ export function $signal<T>(initialValue: T): Signal<T> {
       }
       return s.value;
     }
-    newValue = typeof newValue === "function" ? newValue(s.value) : newValue;
+    if (typeof newValue === "function") newValue = newValue(s.value);
     if (newValue !== s.value) {
       s.value = newValue;
       s.subs.forEach(scheduleEffect);
