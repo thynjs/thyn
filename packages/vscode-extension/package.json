@@ -4,7 +4,7 @@
   "description": "Language support for Thyn",
   "icon": "thyn.png",
   "publisher": "thyn",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "repository": {
     "url": "https://github.com/thynjs/thyn"
   },
