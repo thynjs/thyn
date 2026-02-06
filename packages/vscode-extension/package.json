@@ -2,8 +2,9 @@
   "name": "thyn",
   "displayName": "Thyn",
   "description": "Language support for Thyn",
+  "icon": "thyn.png",
   "publisher": "thyn",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "url": "https://github.com/thynjs/thyn"
   },
@@ -13,16 +14,17 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:thyn"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [{
       "id": "thyn",
       "aliases": ["Thyn", "thyn"],
       "extensions": [".thyn"],
-      "configuration": "./language-configuration.json"
+      "configuration": "./language-configuration.json",
+      "icon": {
+        "light": "./thyn.svg",
+        "dark": "./thyn.svg"
+      }
     }],
     "grammars": [{
       "language": "thyn",
