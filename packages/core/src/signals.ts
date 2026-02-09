@@ -43,8 +43,13 @@ export function $signal<T>(initialValue: T): Signal<T> {
     if (newValue === SENTINEL) {
       if (currentEffect) {
         s.subs.add(currentEffect);
-        const td = currentEffect.td;
-        currentEffect.td = !td ? s.subs : (Array.isArray(td) ? (td.push(s.subs), td) : [td, s.subs]);
+        if (!currentEffect.td) {
+          currentEffect.td = s.subs;
+        } else if (Array.isArray(currentEffect.td)) {
+          currentEffect.td.push(s.subs);
+        } else {
+          currentEffect.td = [currentEffect.td, s.subs];
+        }
       }
       return s.value;
     }
