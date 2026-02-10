@@ -45,6 +45,7 @@ function isReactiveExpression(expr) {
 }
 
 const DOUBLE_QUOTE = "__THYN__DOUBLE_QUOTE__";
+const PLACEHOLDER_CHAR = "\uE000";
 
 function parseAttributes(el) {
   const result: { [key: string]: { raw: string } | { quoted: string } } = {};
@@ -282,7 +283,7 @@ function generateTextContentTemplate(
       }
     }
     // Use a space as placeholder for the text node
-    const stat = " ";
+    const stat = PLACEHOLDER_CHAR;
     const dynamic = `__THYN__CORE__.staticEffect(() => {
       ${textNode}.nodeValue = ${fn};
     });\n`;
@@ -294,10 +295,10 @@ function generateTextContentTemplate(
     };
   }
 
-  if (parts.length === 1) {
+    if (parts.length === 1) {
     return {
       dynamic: `${textNode}.nodeValue = ${interpolated.slice(2, -1)};\n`,
-      static: " ",
+      static: PLACEHOLDER_CHAR,
       root: "",
       staticRoot: root,
     };
@@ -305,8 +306,9 @@ function generateTextContentTemplate(
 
   return {
     dynamic: `${textNode}.nodeValue = \`${interpolated}\`;\n`,
-    static: " ",
+    static: PLACEHOLDER_CHAR,
     root: "",
+
     staticRoot: root,
   };
 }
@@ -921,6 +923,10 @@ async function transformHTMLtoJSX(html: string, style: string) {
     if (!__THYN__template) {
       const t = document.createElement("template");
       t.innerHTML = \`${escapeTemplateLiteral(tmpl)}\`;
+      const w = document.createTreeWalker(t.content, 4);
+      while(w.nextNode()) {
+        if (w.currentNode.nodeValue === "\\uE000") w.currentNode.nodeValue = "";
+      }
       __THYN__template = t.content.firstChild;
     }
     return __THYN__template.cloneNode(true);
