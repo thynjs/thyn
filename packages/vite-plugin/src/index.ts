@@ -5,7 +5,7 @@ import MagicString from "magic-string";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
 import { parseHTML } from "./html-parser.js";
-import { escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
+import { escapeTemplateLiteral, extractParts, splitScript, escapeHtml } from "./utils.js";
 
 async function scopeSelectors(css: string, scopeId: string) {
   const result = await postcss([
@@ -251,7 +251,7 @@ function generateTextContentTemplate(
       .replace(new RegExp(escapedOpenBrace, 'g'), '{{')
       .replace(new RegExp(escapedCloseBrace, 'g'), '}}');
     return {
-      static: `const ${root} = document.createTextNode(\`${escapeTemplateLiteral(finalText)}\`);\n`,
+      static: escapeHtml(finalText),
       dynamic: "",
       root: "",
       staticRoot: root,
@@ -281,7 +281,8 @@ function generateTextContentTemplate(
         fn = interpolated.slice(2, -1);
       }
     }
-    const stat = `const ${root} = document.createTextNode("");\n`;
+    // Use a space as placeholder for the text node
+    const stat = " ";
     const dynamic = `__THYN__CORE__.staticEffect(() => {
       ${textNode}.nodeValue = ${fn};
     });\n`;
@@ -296,7 +297,7 @@ function generateTextContentTemplate(
   if (parts.length === 1) {
     return {
       dynamic: `${textNode}.nodeValue = ${interpolated.slice(2, -1)};\n`,
-      static: `const ${root} = document.createTextNode("");\n`,
+      static: " ",
       root: "",
       staticRoot: root,
     };
@@ -304,7 +305,7 @@ function generateTextContentTemplate(
 
   return {
     dynamic: `${textNode}.nodeValue = \`${interpolated}\`;\n`,
-    static: `const ${root} = document.createTextNode("");\n`,
+    static: " ",
     root: "",
     staticRoot: root,
   };
@@ -356,10 +357,10 @@ function makeTemplate(
   const attrs = parseAttributes(node);
 
   let statRoot = makeVariable();
-  let template = `const ${statRoot} = document.createElement("${tag}");\n`;
+  let template = `<${tag}`;
+
   if (!parent) {
     statRoot = "__THYN__template";
-    template = `${statRoot} = document.createElement("${tag}");\n`;
   }
   let code = "";
   let dynRoot = makeVariable();
@@ -385,14 +386,15 @@ function makeTemplate(
     if (DIRECTIVES.includes(key)) continue;
     if ("quoted" in val) {
       if (key === "class") {
-        template += `${statRoot}.className = "${val.quoted}";\n`;
-      } else if (key.includes("-")) {
-        template += `${statRoot}.setAttribute("${key}", "${val.quoted}");\n`;
+        template += ` class="${escapeHtml(val.quoted)}"`;
       } else {
-        template += `${statRoot}["${key}"] = "${val.quoted}";\n`;
+        template += ` ${key}="${escapeHtml(val.quoted)}"`;
       }
     }
   }
+
+  template += ">";
+
   for (const [key, val] of Object.entries(attrs)) {
     if (DIRECTIVES.includes(key)) continue;
     if (!("raw" in val)) continue;
@@ -457,14 +459,15 @@ function makeTemplate(
       const ch = children[i];
       if (ch.static) {
         template += ch.static;
-        const childStaticRoot = ch.staticRoot || ch.root;
-        template += `${statRoot}.appendChild(${childStaticRoot});\n`;
       }
       if (ch.dynamic) {
         code += ch.dynamic;
       }
     }
   }
+
+  template += `</${tag}>`;
+
   return {
     root: dynRoot,
     staticRoot: statRoot,
@@ -916,7 +919,9 @@ async function transformHTMLtoJSX(html: string, style: string) {
   let __THYN__template;
   function __THYN__template_generate() {
     if (!__THYN__template) {
-      ${tmpl}
+      const t = document.createElement("template");
+      t.innerHTML = \`${escapeTemplateLiteral(tmpl)}\`;
+      __THYN__template = t.content.firstChild;
     }
     return __THYN__template.cloneNode(true);
   }`];

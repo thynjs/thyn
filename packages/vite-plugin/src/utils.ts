@@ -22,15 +22,20 @@ export function extractParts(code: string) {
   };
 };
 
-// export function escapeSpecialChars(input: string): string {
-//   return input.replace(/[`\\$]/g, "\\$&");
-// }
-
 export function escapeTemplateLiteral(text: string): string {
   return text
     .replace(/\\/g, '\\\\')     // Escape backslashes
     .replace(/`/g, '\\`')       // Escape backticks
     .replace(/\$/g, '\\$');  // Escape interpolation
+}
+
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export function splitScript(script: string) {
