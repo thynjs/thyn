@@ -1,11 +1,14 @@
 {
   "name": "@thyn/core",
-  "version": "0.0.347",
+  "version": "0.0.348",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
-    "./router": "./dist/router.js"
+    ".": {
+      "node": "./dist/node.js",
+      "default": "./dist/index.js"
+    },
+    "./plugin": "./dist/plugin/index.js"
   },
   "sideEffects": false,
   "scripts": {
