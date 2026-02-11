@@ -1,6 +1,6 @@
 {
   "name": "@thyn/core",
-  "version": "0.0.351",
+  "version": "0.0.352",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
