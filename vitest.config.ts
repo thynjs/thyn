@@ -1,9 +1,10 @@
 import { defineConfig } from "vitest/config";
+import thyn from "./src/plugin/index.js";
 
 export default defineConfig({
+  plugins: [thyn()],
   test: {
-    environment: 'jsdom',
-    globals: true,
+    environment: 'happy-dom',
     include: ['tests/**/*.test.ts'],
     exclude: ['**/node_modules/**', 'dist/**'],
   },

@@ -1,11 +1,12 @@
 import * as acorn from "acorn";
 import * as acornwalk from "acorn-walk";
-import * as esbuild from "esbuild";
 import MagicString from "magic-string";
 import postcss from 'postcss';
 import selectorParser from 'postcss-selector-parser';
 import { parseHTML } from "./html-parser.js";
-import { escapeTemplateLiteral, extractParts, splitScript, escapeHtml } from "./utils.js";
+import { escapeHtml, escapeTemplateLiteral, extractParts, splitScript } from "./utils.js";
+
+const esbuildModule = import("esbuild");
 
 async function scopeSelectors(css: string, scopeId: string) {
   const result = await postcss([
@@ -295,7 +296,7 @@ function generateTextContentTemplate(
     };
   }
 
-    if (parts.length === 1) {
+  if (parts.length === 1) {
     return {
       dynamic: `${textNode}.nodeValue = ${interpolated.slice(2, -1)};\n`,
       static: PLACEHOLDER_CHAR,
@@ -936,6 +937,7 @@ async function transformHTMLtoJSX(html: string, style: string) {
 
 async function transformTypeScript(code: string, id: string) {
   try {
+    const esbuild = await esbuildModule;
     const result = await esbuild.transform(code, {
       loader: "ts",
       target: "es2022",
@@ -1110,6 +1112,7 @@ export default function thyn() {
     async generateBundle() {
       if (isDev || collectedCSS.length === 0) return;
       const combinedCSS = collectedCSS.join("\n");
+      const esbuild = await esbuildModule;
       const result = await esbuild.transform(combinedCSS, {
         loader: "css",
         minify: true,

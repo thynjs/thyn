@@ -1,0 +1,36 @@
+{
+  "name": "@thyn/core",
+  "version": "0.0.345",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./router": "./dist/router.js"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "pub": "tsc && npm version patch -f && npm -f publish --access=public",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thynjs/thyn.git"
+  },
+  "author": "harmtrav@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "acorn": "^8.15.0",
+    "acorn-walk": "^8.3.4",
+    "esbuild": "^0.27.2",
+    "magic-string": "^0.30.21",
+    "postcss": "^8.5.6",
+    "postcss-selector-parser": "^7.1.1"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.6.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  }
+}

@@ -1,8 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "allowJs": true,
-    "checkJs": false,
     "module": "ESNext",
     "target": "ES2020",
     "moduleResolution": "node",
@@ -11,13 +8,16 @@
     "isolatedModules": true,
     "outDir": "dist",
     "rootDir": "src",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ]
+    "declaration": true,
+    "strict": false
   },
   "include": [
     "src/**/*",
-    "types/**/*.d.ts"
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests"
   ]
 }

@@ -9,10 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@thyn/vite-plugin": "^0.0.66",
+    "@thyn/core": "^0.0.345",
     "vite": "^6.3.5"
-  },
-  "dependencies": {
-    "@thyn/core": "^0.0.66"
   }
 }
