@@ -30,26 +30,26 @@
       <h4>source</h4>
       <pre>
         <code class="code language-javascript">
-// App.thyn
-&lt;script&gt;
+{{ `// App.thyn
+<script>
   const count = $signal(0);
-&lt;/script&gt;
+</script>
 
-&lt;button onclick={() =&gt; count(c =&gt; c + 1)}&gt;
-  Count: \{{ count() \}}
-&lt;/button&gt;
+<button onclick={() => count(c => c + 1)}>
+  Count: {{ count() }}
+</button>
 
-&lt;style&gt;
+<style>
   button {
     background: #333;
   }
-&lt;/style&gt;
+</style>
 
 // main.js
 import { mount } from '@thyn/core';
 import App from './App.thyn';
 
-mount(App, document.body);          
+mount(App, document.body);` }}         
        </code>
       </pre>
     </div>
