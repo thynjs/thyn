@@ -1,13 +1,14 @@
 export function extractParts(code: string) {
   // Helper to check if a position is inside a string literal or comment
-  function isInsideStringOrComment(code: string, pos: number): boolean {
+  // within a specific range (used for checking script content only)
+  function isInsideStringOrComment(code: string, startPos: number, endPos: number): boolean {
     let inString = false;
     let stringChar = '';
     let escaped = false;
     let inLineComment = false;
     let inBlockComment = false;
     
-    for (let i = 0; i < pos; i++) {
+    for (let i = startPos; i < endPos; i++) {
       const char = code[i];
       const nextChar = code[i + 1];
       
@@ -61,50 +62,127 @@ export function extractParts(code: string) {
     return inString || inLineComment || inBlockComment;
   }
 
-  // Find first real <script> tag (not inside a string)
-  function findScriptSection(code: string): { start: number; contentStart: number; contentEnd: number; end: number; attrs: string } | null {
+  // Find all script tag positions with their boundaries
+  function findScriptBoundaries(code: string): Array<{ start: number; end: number; attrs: string }> {
+    const boundaries = [];
     const openRegex = /<script([^>]*)>/gi;
+    const closeRegex = /<\/script>/gi;
     let openMatch;
     
     while ((openMatch = openRegex.exec(code)) !== null) {
-      if (!isInsideStringOrComment(code, openMatch.index)) {
-        const contentStart = openMatch.index + openMatch[0].length;
-        
-        // Find the first </script> that is not inside a string
-        const closeRegex = /<\/script>/gi;
-        let closeMatch;
-        while ((closeMatch = closeRegex.exec(code)) !== null) {
-          if (closeMatch.index >= contentStart && !isInsideStringOrComment(code, closeMatch.index)) {
-            return {
-              start: openMatch.index,
-              contentStart: contentStart,
-              contentEnd: closeMatch.index,
-              end: closeMatch.index + closeMatch[0].length,
-              attrs: openMatch[1] || ''
-            };
-          }
+      const openIndex = openMatch.index;
+      const openLength = openMatch[0].length;
+      const attrs = openMatch[1] || '';
+      
+      // Find matching close tag
+      closeRegex.lastIndex = openIndex + openLength;
+      let closeMatch;
+      while ((closeMatch = closeRegex.exec(code)) !== null) {
+        // Check if this close tag is inside a JS string within this script
+        const contentStart = openIndex + openLength;
+        if (!isInsideStringOrComment(code, contentStart, closeMatch.index)) {
+          boundaries.push({
+            start: openIndex,
+            end: closeMatch.index + closeMatch[0].length,
+            attrs
+          });
+          break;
         }
       }
     }
+    
+    return boundaries;
+  }
+
+  // Find the real script section (not inside a string of another script)
+  function findScriptSection(code: string): { start: number; contentStart: number; contentEnd: number; end: number; attrs: string } | null {
+    const allBoundaries = findScriptBoundaries(code);
+    if (allBoundaries.length === 0) return null;
+    
+    // The first script tag is the real one if it's not inside any other script's string
+    // Check each boundary to see if it's inside another script's content
+    for (const boundary of allBoundaries) {
+      let isInsideAnotherScript = false;
+      
+      for (const other of allBoundaries) {
+        if (other === boundary) continue;
+        
+        // Check if this boundary is inside another script's content
+        const otherContentStart = other.start + code.slice(other.start, other.end).indexOf('>') + 1;
+        const otherContentEnd = other.end - code.slice(other.end - 10, other.end).indexOf('<') - 10 + code.slice(other.end - 10, other.end).indexOf('<');
+        
+        if (boundary.start > otherContentStart && boundary.start < other.end) {
+          // This boundary is inside another script's content area
+          // Check if it's inside a JS string
+          if (isInsideStringOrComment(code, otherContentStart, boundary.start)) {
+            isInsideAnotherScript = true;
+            break;
+          }
+        }
+      }
+      
+      if (!isInsideAnotherScript) {
+        // This is the real script section
+        const openTagEnd = code.indexOf('>', boundary.start) + 1;
+        const closeTagStart = code.lastIndexOf('<', boundary.end - 1);
+        return {
+          start: boundary.start,
+          contentStart: openTagEnd,
+          contentEnd: closeTagStart,
+          end: boundary.end,
+          attrs: boundary.attrs
+        };
+      }
+    }
+    
     return null;
   }
 
-  // Find first real <style> tag (not inside a string)
+  // Find the real style section (outside of script sections)
   function findStyleSection(code: string): { start: number; contentStart: number; contentEnd: number; end: number } | null {
+    const scriptBoundaries = findScriptBoundaries(code);
     const openRegex = /<style[^>]*>/gi;
+    const closeRegex = /<\/style>/gi;
     let openMatch;
     
     while ((openMatch = openRegex.exec(code)) !== null) {
-      if (!isInsideStringOrComment(code, openMatch.index)) {
-        const contentStart = openMatch.index + openMatch[0].length;
+      const openIndex = openMatch.index;
+      
+      // Check if this style tag is inside any script section
+      let isInsideScript = false;
+      for (const script of scriptBoundaries) {
+        const contentStart = script.start + code.slice(script.start, script.end).indexOf('>') + 1;
+        const contentEnd = script.end - code.slice(script.end - 10, script.end).indexOf('<') - 10 + code.slice(script.end - 10, script.end).indexOf('<');
         
-        // Find the first </style> that is not inside a string
-        const closeRegex = /<\/style>/gi;
+        if (openIndex >= contentStart && openIndex < script.end) {
+          // It's in the script section, check if inside a JS string
+          if (isInsideStringOrComment(code, contentStart, openIndex)) {
+            isInsideScript = true;
+            break;
+          }
+        }
+      }
+      
+      if (!isInsideScript) {
+        // Found a real style tag, now find its close tag
+        const contentStart = openIndex + openMatch[0].length;
+        closeRegex.lastIndex = contentStart;
         let closeMatch;
         while ((closeMatch = closeRegex.exec(code)) !== null) {
-          if (closeMatch.index >= contentStart && !isInsideStringOrComment(code, closeMatch.index)) {
+          // Make sure close tag is also outside scripts
+          let closeIsInsideScript = false;
+          for (const script of scriptBoundaries) {
+            const scriptContentStart = script.start + code.slice(script.start, script.end).indexOf('>') + 1;
+            if (closeMatch.index >= scriptContentStart && closeMatch.index < script.end) {
+              if (isInsideStringOrComment(code, scriptContentStart, closeMatch.index)) {
+                closeIsInsideScript = true;
+                break;
+              }
+            }
+          }
+          if (!closeIsInsideScript) {
             return {
-              start: openMatch.index,
+              start: openIndex,
               contentStart: contentStart,
               contentEnd: closeMatch.index,
               end: closeMatch.index + closeMatch[0].length
