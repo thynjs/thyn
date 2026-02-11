@@ -1,13 +1,27 @@
 import { component, show } from "./element.js";
 import { $signal, staticEffect } from "./signals.js";
 
-const params = $signal({} as any);
+let params = null;
+let routerPath = null;
+let initialized = false;
+
+function initRouter() {
+  if (initialized) return;
+  params = $signal({} as any);
+  routerPath = $signal(location.pathname);
+  initialized = true;
+}
 
 export const router = {
-  path: $signal(location.pathname),
-  param: (name: string): string | undefined => params()[name],
+  get path() {
+    initRouter();
+    return routerPath;
+  },
+  param: (name: string): string | undefined => {
+    initRouter();
+    return params()[name];
+  },
 };
-
 
 interface Route {
   path: string;
@@ -15,6 +29,7 @@ interface Route {
 }
 
 export function Router({ routes }: { routes: Route[] }) {
+  initRouter();
   const current = $signal(null);
   const compiledRoutes = routes.map(route => {
     const compiledRoute = {
@@ -31,7 +46,7 @@ export function Router({ routes }: { routes: Route[] }) {
   });
 
   staticEffect(() => {
-    const pn = router.path();
+    const pn = routerPath();
     if (pn !== location.pathname) {
       history.pushState({}, "", pn);
     }
@@ -61,6 +76,7 @@ export function Router({ routes }: { routes: Route[] }) {
 }
 
 export function Link({ slot, to }) {
+  initRouter();
   const a = document.createElement("a");
   a.href = to;
   for (const ch of slot) {
@@ -74,7 +90,7 @@ export function Link({ slot, to }) {
     ) {
       e.preventDefault();
       history.pushState({}, "", to);
-      router.path(to);
+      routerPath(to);
     }
   };
   return a;
