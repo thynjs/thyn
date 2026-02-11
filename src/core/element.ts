@@ -2,10 +2,6 @@ import { $effect, cleanup, staticEffect, uncollectedStaticEffect } from "./signa
 
 const MAX_SAFE_SPREAD = 10000;
 
-export function mount(app, parent) {
-  parent.appendChild(app());
-}
-
 let collectingHead;
 
 export function collectEffect(effectFn) {

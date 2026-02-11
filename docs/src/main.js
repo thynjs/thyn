@@ -1,5 +1,4 @@
-import { mount } from "@thyn/core";
-import "./main.css";
 import App from "./App.thyn";
+import "./main.css";
 
-mount(App, document.body);
+document.body.appendChild(App());

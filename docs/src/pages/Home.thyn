@@ -24,7 +24,7 @@
 </script>
 
 <button onclick={() => count(c => c + 1)}>
-  Count: \{{ count() \}}
+  Count: {{ count() }}
 </button>
 
 <style>
@@ -34,10 +34,9 @@
 </style>
 
 // main.js
-import { mount } from '@thyn/core';
 import App from './App.thyn';
 
-mount(App, document.body);`;
+document.body.appendChild(App());`;
 </script>
 
 <div class="main">
