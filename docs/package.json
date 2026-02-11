@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@thyn/core": "^0.0.349",
+    "@thyn/core": "^0.0.350",
     "vite": "^6.3.5"
   }
 }
