@@ -19,19 +19,19 @@
   });
 
   const codeSnippet = `// App.thyn
-&lt;script&gt;
+<script>
   const count = $signal(0);
-&lt;/script&gt;
+</script>
 
-&lt;button onclick={() =&gt; count(c =&gt; c + 1)}&gt;
+<button onclick={() => count(c => c + 1)}>
   Count: \{{ count() \}}
-&lt;/button&gt;
+</button>
 
-&lt;style&gt;
+<style>
   button {
     background: #333;
   }
-&lt;/style&gt;
+</style>
 
 // main.js
 import { mount } from '@thyn/core';
@@ -59,7 +59,7 @@ mount(App, document.body);`;
       <h4>compiled</h4>
       <pre>
         <code class="compiled language-javascript">
-let u,s;const r=[];function l(t){r.push(t),s||(s=!0,queueMicrotask(()=&gt;{for(const n of r)f(n);r.length=0,s=!1}))}function p(t){const n=new Set;return(...e)=&gt;{if(!e.length)return u&amp;&amp;(n.add(u),u.deps.add(n)),t;const o=e[0],i=typeof o==&quot;function&quot;?o(t):o;if(i!==t){t=i;for(const d of n)l(d)}}}function f(t,n){n||a(t);const e=u;u=t;const o=t.run();o&amp;&amp;(t.td?t.td.push(o):t.td=[o]),u=e}function _(t,n){const e={run:t,deps:new Set,show:n};return f(e,!0),e}function a(t){const{deps:n,td:e}=t;if(n.size){for(const o of n)o.delete(t);n.clear()}if(e){for(const o of e)o();t.td=null}}function h(t,n){n.appendChild(t())}let c;function m(){if(!c){c=document.createElement(&quot;button&quot;),c.className=&quot;thyn-0&quot;;const t=document.createTextNode(&quot;&quot;);return c.appendChild(t),c}return c.cloneNode(!0)}function N(t){const n=p(0),e=m();return e.onclick=()=&gt;n(o=&gt;o+1),_(()=&gt;{e.firstChild.nodeValue=`Count: ${n()}`}),e}h(N,document.body);
+let u,s;const r=[];function l(t){r.push(t),s||(s=!0,queueMicrotask(()=>{for(const n of r)f(n);r.length=0,s=!1}))}function p(t){const n=new Set;return(...e)=>{if(!e.length)return u&amp;&amp;(n.add(u),u.deps.add(n)),t;const o=e[0],i=typeof o==&quot;function&quot;?o(t):o;if(i!==t){t=i;for(const d of n)l(d)}}}function f(t,n){n||a(t);const e=u;u=t;const o=t.run();o&amp;&amp;(t.td?t.td.push(o):t.td=[o]),u=e}function _(t,n){const e={run:t,deps:new Set,show:n};return f(e,!0),e}function a(t){const{deps:n,td:e}=t;if(n.size){for(const o of n)o.delete(t);n.clear()}if(e){for(const o of e)o();t.td=null}}function h(t,n){n.appendChild(t())}let c;function m(){if(!c){c=document.createElement(&quot;button&quot;),c.className=&quot;thyn-0&quot;;const t=document.createTextNode(&quot;&quot;);return c.appendChild(t),c}return c.cloneNode(!0)}function N(t){const n=p(0),e=m();return e.onclick=()=>n(o=>o+1),_(()=>{e.firstChild.nodeValue=`Count: ${n()}`}),e}h(N,document.body);
         </code>
       </pre>
     </div>
