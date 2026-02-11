@@ -35,7 +35,7 @@ npm run dev
 </button>
 
 <style>
-  /* Styles are scoped by default to prevent style bleeding 🎉 */
+  /* Styles are scoped by default to prevent style bleeding */
   button {
     background: #333;
     border: 0;
