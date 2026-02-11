@@ -1,6 +1,6 @@
 {
   "name": "@thyn/core",
-  "version": "0.0.349",
+  "version": "0.0.350",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
@@ -9,7 +9,7 @@
       "default": "./dist/index.js"
     },
     "./router": {
-        "default": "./dist/core/router.js"
+      "default": "./dist/core/router.js"
     }
   },
   "sideEffects": false,
