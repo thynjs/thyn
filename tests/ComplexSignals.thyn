@@ -1,0 +1,22 @@
+<script>
+  const count = $signal(0);
+  const double = $signal(0);
+  
+  $effect(() => {
+    double(count() * 2);
+  });
+  
+  const text = $signal("Low");
+  $effect(() => {
+      if (count() > 2) {
+          text("High");
+      } else {
+          text("Low");
+      }
+  });
+</script>
+
+<div>
+  <button onclick={() => count(c => c + 1)}>Inc</button>
+  <div id="res">{{ count() }}:{{ double() }}:{{ text() }}</div>
+</div>

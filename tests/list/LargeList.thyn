@@ -1,0 +1,13 @@
+<script>
+  const count = 10005; // > MAX_SAFE_SPREAD (10000)
+  const items = $signal(Array.from({ length: count }, (_, i) => i));
+  const removeLast = () => items(prev => prev.slice(0, -1));
+</script>
+
+<div>
+  <button id="remove" onclick={removeLast}>Remove</button>
+
+  <div id="list">
+    <span #for={item in items()}>{{ item }}</span>
+  </div>
+</div>

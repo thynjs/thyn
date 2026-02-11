@@ -1,0 +1,14 @@
+<script>
+  const items = $signal([{ id: 1, items: ['a', 'b'] }, { id: 2, items: ['c'] }]);
+  const removeFirst = () => items(prev => prev.slice(1));
+</script>
+
+<div>
+  <button id="remove" onclick={removeFirst}>Remove</button>
+
+  <div id="list">
+    <div class="parent" #for={item in items()} data-id={item.id}>
+       <span class="child" #for={sub in item.items}>{{ sub }}</span>
+    </div>
+  </div>
+</div>
