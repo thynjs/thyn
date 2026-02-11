@@ -23,17 +23,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install core dependencies
-        working-directory: packages/core
         run: npm install
 
       - name: Run core tests
-        working-directory: packages/core
-        run: npm test
-
-      - name: Install vite-plugin dependencies
-        working-directory: packages/vite-plugin
-        run: npm install
-
-      - name: Run vite-plugin tests
-        working-directory: packages/vite-plugin
         run: npm test

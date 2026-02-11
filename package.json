@@ -7,6 +7,9 @@
     ".": {
       "node": "./dist/node.js",
       "default": "./dist/index.js"
+    },
+    "./router": {
+        "default": "./dist/core/router.js"
     }
   },
   "sideEffects": false,
