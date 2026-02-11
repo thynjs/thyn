@@ -1,0 +1,10 @@
+<script>
+  // Test: insert items in middle
+  const items = $signal([1, 4]);
+</script>
+
+<div onclick={() => items([1, 2, 3, 4])}>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+</div>

@@ -1,0 +1,12 @@
+<script>
+  // Terminal list with siblings - Test: some → none
+  const items = $signal([1, 2, 3]);
+</script>
+
+<div onclick={() => items([])}>
+  <span class="before">start</span>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+  <span class="after">end</span>
+</div>

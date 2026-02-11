@@ -1,0 +1,10 @@
+<script>
+  // Test: some → none (clear all items)
+  const items = $signal([1, 2, 3]);
+</script>
+
+<div onclick={() => items([])}>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+</div>

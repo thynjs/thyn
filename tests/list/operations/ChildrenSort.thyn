@@ -1,0 +1,11 @@
+<script>
+  // List with component children - Test: sort
+  const items = $signal([4, 2, 3, 1]);
+</script>
+
+<div onclick={() => items([1, 2, 3, 4])}>
+  <p #for={item in items()} data-id={item}>
+    <span #if={item % 2 === 0}>even: {{ item }}</span>
+    <span #else>odd: {{ item }}</span>
+  </p>
+</div>

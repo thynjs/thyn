@@ -1,0 +1,16 @@
+<script>
+  // Test: move/reorder items
+  const items = $signal([1, 2, 3, 4]);
+  let clickCount = 0;
+</script>
+
+<div onclick={() => {
+  clickCount++;
+  if (clickCount === 1) items([4, 1, 2, 3]); // Move 4 to front
+  else if (clickCount === 2) items([1, 3, 2, 4]); // Swap 2 and 3
+  else items([4, 3, 2, 1]); // Reverse
+}}>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+</div>

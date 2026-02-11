@@ -320,8 +320,8 @@ export function list(props, terminal = false) {
     }
 
     if (start < 0) {
-      for (let i = nextItems.length; i < oldLength; i++) {
-        const e = childNodes[offset + --oldLength];
+      for (let i = oldLength - 1; i >= nextItems.length; i--) {
+        const e = childNodes[offset + i];
         teardownNode(e);
         remove(e);
       }
@@ -352,7 +352,7 @@ export function list(props, terminal = false) {
     for (const e of removalQueue) {
       remove(e);
     }
-    if (oldLength - start === removalQueue.length) {
+    if (oldLength - start === removalQueue.length && newLength === oldLength) {
       prevItems = nextItems;
       nextItems = null;
       return;
@@ -364,10 +364,7 @@ export function list(props, terminal = false) {
         (!nextItems[i] ||
           prevItems[i] !== nextItems[i])
       ) {
-        keyMap.set(prevItems[i], {
-          el: childNodes[i + offset],
-          item: prevItems[i],
-        });
+        keyMap.set(prevItems[i], childNodes[i + offset]);
       }
     }
     while (start <= newLength) {
@@ -378,30 +375,23 @@ export function list(props, terminal = false) {
         continue;
       }
       if (oldChd === undefined) {
-        parent.insertBefore(render(newChd), endBookend);
+        parent.insertBefore(render(newChd), childNodeList[start + offset] ?? endBookend);
         start++;
         continue;
       }
       const mappedOld = keyMap.get(newChd);
       if (mappedOld) {
         const oldDom = childNodeList[start + offset];
-        const { el, item } = mappedOld;
-        if (oldDom !== el) {
-          const tmp = el.nextSibling;
-          parent.insertBefore(el, oldDom);
+        if (oldDom !== mappedOld) {
+          const tmp = mappedOld.nextSibling;
+          parent.insertBefore(mappedOld, oldDom);
           parent.insertBefore(oldDom, tmp);
-        } else if (item !== newChd) {
-          replaceWith(newChd, el, render);
         }
         keyMap.delete(newChd);
       } else if (oldChd !== newChd) {
         parent.insertBefore(render(newChd), childNodeList[start + offset]);
       }
       start++;
-    }
-    for (const { el } of keyMap.values()) {
-      teardownNode(el);
-      remove(el);
     }
     keyMap = null;
     prevItems = nextItems;
@@ -537,7 +527,7 @@ export function isolatedTerminalList(props) {
       ch.remove();
       childNodes[i] = null;
     }
-    if (oldLength - start === removalQueueIndices.length) {
+    if (oldLength - start === removalQueueIndices.length && newLength === oldLength) {
       prevItems = nextItems;
       nextItems = null;
       childNodes = null;
@@ -550,10 +540,7 @@ export function isolatedTerminalList(props) {
         (!nextItems[i] ||
           prevItems[i] !== nextItems[i])
       ) {
-        keyMap.set(prevItems[i], {
-          el: childNodes[i + 1],
-          item: prevItems[i],
-        });
+        keyMap.set(prevItems[i], childNodes[i + 1]);
       }
     }
     while (start <= newLength) {
@@ -564,32 +551,25 @@ export function isolatedTerminalList(props) {
         continue;
       }
       if (oldChd === undefined) {
-        parent.insertBefore(render(newChd), endBookend);
+        parent.insertBefore(render(newChd), childNodeList[start + 1]);
         start++;
         continue;
       }
       const mappedOld = keyMap.get(newChd);
       if (mappedOld) {
         const oldDom = childNodeList[start + 1];
-        const { el, item } = mappedOld;
-        if (oldDom !== el) {
-          const tmp = el.nextSibling;
-          parent.insertBefore(el, oldDom);
+        if (oldDom !== mappedOld) {
+          const tmp = mappedOld.nextSibling;
+          parent.insertBefore(mappedOld, oldDom);
           if (oldDom !== tmp) {
             parent.insertBefore(oldDom, tmp);
           }
-        } else if (item !== newChd) {
-          replaceWith(newChd, el, render);
         }
         keyMap.delete(newChd);
       } else if (oldChd !== newChd) {
         parent.insertBefore(render(newChd), childNodeList[start + 1]);
       }
       start++;
-    }
-    for (const { el } of keyMap.values()) {
-      shallowTeardown(el);
-      el.remove();
     }
     keyMap = null;
     prevItems = nextItems;

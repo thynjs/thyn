@@ -1,0 +1,11 @@
+<script>
+  // List with component children - Test: replace all
+  const items = $signal([1, 2]);
+</script>
+
+<div onclick={() => items([5, 6, 7])}>
+  <p #for={item in items()} data-id={item}>
+    <span #if={item % 2 === 0}>even: {{ item }}</span>
+    <span #else>odd: {{ item }}</span>
+  </p>
+</div>

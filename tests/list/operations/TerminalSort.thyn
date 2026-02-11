@@ -1,0 +1,12 @@
+<script>
+  // Terminal list with siblings - Test: sort
+  const items = $signal([3, 1, 2]);
+</script>
+
+<div onclick={() => items([1, 2, 3])}>
+  <span class="before">start</span>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+  <span class="after">end</span>
+</div>

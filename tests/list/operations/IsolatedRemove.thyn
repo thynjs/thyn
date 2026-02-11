@@ -1,0 +1,17 @@
+<script>
+  // Test: remove items from various positions
+  const items = $signal([1, 2, 3, 4]);
+  let clickCount = 0;
+</script>
+
+<div onclick={() => {
+  clickCount++;
+  if (clickCount === 1) items([1, 2]); // Remove from end
+  else if (clickCount === 2) items([3, 4]); // Remove from beginning  
+  else if (clickCount === 3) items([1, 4]); // Remove from middle
+  else items([]);
+}}>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+</div>

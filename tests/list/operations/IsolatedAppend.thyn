@@ -1,0 +1,10 @@
+<script>
+  // Test: append items
+  const items = $signal([1, 2]);
+</script>
+
+<div onclick={() => items([1, 2, 3, 4])}>
+  <span #for={item in items()} data-id={item}>
+    {{ item }}
+  </span>
+</div>
