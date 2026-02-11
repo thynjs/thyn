@@ -16,6 +16,17 @@ describe("CodeSnippet component", () => {
     expect(display.textContent).toContain("button {");
   });
 
+  it("should not add extra indentation to template literals", () => {
+    const root = CodeSnippet();
+    const display = root.querySelector('.display');
+    const text = display.textContent;
+
+    // Check that <script> is at the start of the line (no extra indentation)
+    expect(text).toContain("\n<script>");
+    // Check that const count has exactly 2 spaces (as in source), not 4
+    expect(text).toContain("\n  const count");
+  });
+
   it("should apply the component's actual style, not style from codeSnippet", () => {
     const root = CodeSnippet();
     const display = root.querySelector('.display');

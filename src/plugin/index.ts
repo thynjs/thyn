@@ -977,7 +977,7 @@ export async function transformSFC(source: string, id: string) {
   s.append([
     "",
     `export default function ${name}($props) {`,
-    ...body.map((l) => "  " + l),
+    ...body.map((l: any) => (l.shouldIndent ? "  " + l.text : l.text)),
     removeUnusedThynVars(`  ${transformed} return ${root};`),
     `}`,
   ].join("\n"));

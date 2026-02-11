@@ -304,7 +304,7 @@ export function splitScript(script: string) {
       if (inImport) {
         currentImport.push(line);
       } else {
-        body.push(line);
+        body.push({ text: line, shouldIndent: true });
       }
 
       // Check for end of multi-line comment, tracking strings
@@ -338,7 +338,7 @@ export function splitScript(script: string) {
       if (inImport) {
         currentImport.push(line);
       } else {
-        body.push(line);
+        body.push({ text: line, shouldIndent: !inString });
       }
 
       // Check if comment ends on same line
@@ -372,13 +372,13 @@ export function splitScript(script: string) {
 
     // Skip single-line comments when not in import (only if not in string)
     if (!inString && !inImport && trimmed.startsWith("//")) {
-      body.push(line);
+      body.push({ text: line, shouldIndent: true });
       continue;
     }
 
     // Skip empty lines when not in import
     if (!trimmed && !inImport) {
-      body.push(line);
+      body.push({ text: line, shouldIndent: true });
       continue;
     }
 
@@ -451,7 +451,7 @@ export function splitScript(script: string) {
       }
     } // Regular body content
     else {
-      body.push(line);
+      body.push({ text: line, shouldIndent: !inString });
       // Update global string state
       inString = lineInString;
       stringChar = lineStringChar;
@@ -465,12 +465,16 @@ export function splitScript(script: string) {
       imports.push(currentImport.join("\n"));
     } else {
       // Still in string or incomplete, treat as body
-      body.push(...currentImport);
+      // We can't know for sure about indentation here, but if it was part of an import or string,
+      // it likely follows previous logic. For safety, if we are in string, don't indent.
+      for(const l of currentImport) {
+          body.push({ text: l, shouldIndent: !inString });
+      }
     }
   }
 
   return {
     imports: imports.filter((imp) => imp.trim()),
-    body: body.length > 0 ? body : [""],
+    body: body.length > 0 ? body : [{ text: "", shouldIndent: true }],
   };
 }

@@ -51,7 +51,7 @@ mount(App, document.body);`;
       <h4>source</h4>
       <pre>
         <code class="code language-javascript">
-            {{ codeSnippet }}
+          {{ codeSnippet }}
         </code>
       </pre>
     </div>
