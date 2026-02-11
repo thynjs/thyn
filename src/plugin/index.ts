@@ -906,7 +906,7 @@ async function transformHTMLtoJSX(html: string, style: string) {
   const rootElement = template.content.firstElementChild;
 
   let scopedStyle = null;
-  if (style) {
+  if (style && rootElement) {
     addScopeId(rootElement, scopeId);
     scopedStyle = await scopeSelectors(style, scopeId);
   }

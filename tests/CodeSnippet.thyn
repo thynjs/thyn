@@ -1,0 +1,31 @@
+<script>
+  const count = $signal(0);
+  
+  // This code snippet string contains <script> and <style> tags
+  // which should NOT be extracted as actual sections
+  const codeSnippet = `// App.thyn
+<script>
+  const count = $signal(0);
+</script>
+
+<button onclick={() => count(c => c + 1)}>
+  Count: {{ count() }}
+</button>
+
+<style>
+  button {
+    background: #333;
+  }
+</style>`;
+</script>
+
+<div>
+  <p class="display">{{ codeSnippet }}</p>
+</div>
+
+<style>
+  .display {
+    white-space: pre;
+    font-family: monospace;
+  }
+</style>

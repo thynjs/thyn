@@ -1,0 +1,15 @@
+<script>
+  const codeSnippet = `// main.js
+import { mount } from '@thyn/core';
+import App from './App.thyn';
+
+mount(App, document.body);`;
+
+  const value = 42;
+</script>
+
+<div>{{ value }}</div>
+
+<style>
+  div { color: red; }
+</style>
