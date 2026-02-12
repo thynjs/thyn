@@ -1,0 +1,9 @@
+<script>
+  import SharedCounter from "./SharedCounter.thyn";
+</script>
+
+<div class="parent">
+  <SharedCounter />
+  <SharedCounter />
+  <SharedCounter />
+</div>

@@ -1,0 +1,22 @@
+<script module>
+  // Module-level shared state
+  const sharedCounter = $signal(0);
+  
+  export function incrementShared() {
+    sharedCounter(c => c + 1);
+  }
+  
+  export function getSharedCount() {
+    return sharedCounter();
+  }
+</script>
+
+<script>
+  // Each instance has its own ID
+  const instanceId = Math.random().toString(36).substr(2, 5);
+</script>
+
+<div class="shared-counter-instance" data-instance-id={instanceId}>
+  <span class="shared-value">{{ getSharedCount() }}</span>
+  <button class="increment-btn" onclick={incrementShared}>Increment Shared</button>
+</div>

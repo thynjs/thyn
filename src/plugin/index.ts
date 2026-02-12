@@ -958,17 +958,35 @@ async function transformTypeScript(code: string, id: string) {
 
 export async function transformSFC(source: string, id: string) {
   const name = id.split("/").pop()?.replace(/\.thyn$/, "");
-  const { script, scriptLang, html, style } = extractParts(source);
+  const { script, scriptLang, scriptModule, html, style } = extractParts(source);
+  
+  // Split both script sections
   const { imports, body } = splitScript(script);
+  const { imports: moduleImports, body: moduleBody } = splitScript(scriptModule);
 
   const s = new MagicString("");
-  if (!imports.some((imp) => imp.includes("$signal"))) {
+  
+  // Auto-imports for both sections
+  const needsSignal = !imports.some((imp) => imp.includes("$signal")) && 
+                      !moduleImports.some((imp) => imp.includes("$signal"));
+  const needsEffect = !imports.some((imp) => imp.includes("$effect")) && 
+                      !moduleImports.some((imp) => imp.includes("$effect"));
+  
+  if (needsSignal) {
     s.prepend("import { $signal } from '@thyn/core';\n");
   }
-  if (!imports.some((imp) => imp.includes("$effect"))) {
+  if (needsEffect) {
     s.prepend("import { $effect } from '@thyn/core';\n");
   }
   s.prepend("import * as __THYN__CORE__ from '@thyn/core';\n");
+  
+  // Module imports and body (outside component function)
+  s.append(moduleImports.join("\n") + "\n");
+  if (moduleBody.length > 0 && moduleBody[0].text !== "") {
+    s.append(moduleBody.map((l: any) => l.text).join("\n") + "\n");
+  }
+  
+  // Component imports
   s.append(imports.join("\n") + "\n");
 
   let [root, transformed, hoist, scopedStyle] = await transformHTMLtoJSX(html, style);

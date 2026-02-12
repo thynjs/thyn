@@ -214,13 +214,85 @@ export function extractParts(code: string) {
     style = code.slice(styleSection.contentStart, styleSection.contentEnd).trim();
   }
 
-  // Build HTML by removing script and style sections
+  // Separate module script from component script
+  let scriptModule = "";
+  let scriptModuleLang = scriptLang;
+  let componentScriptBoundary: { start: number; end: number; attrs: string } | null = null;
+  
+  // Check if the first script is a module script
+  if (scriptSection) {
+    const isModuleScript = /(?:\s(?:context|type)\s*=\s*["']module["']|\s(?:module|context="module"|type="module")(?:\s|>))/.test(scriptSection.attrs + ">");
+    if (isModuleScript) {
+      scriptModule = script;
+      script = ""; // Clear the component script - we'll look for a regular one
+      
+      // Look for a regular script tag after this one
+      const allBoundaries = findScriptBoundaries(code);
+      // Find the first non-module script
+      for (const boundary of allBoundaries) {
+        if (boundary.start === scriptSection.start) continue; // Skip the module script
+        
+        // Check if this is inside the module script (inside a string)
+        let isInsideModule = false;
+        for (const other of allBoundaries) {
+          if (other === boundary) continue;
+          const otherContentStart = other.start + code.slice(other.start, other.end).indexOf('>') + 1;
+          if (boundary.start > otherContentStart && boundary.start < other.end) {
+            if (isInsideStringOrComment(code, otherContentStart, boundary.start)) {
+              isInsideModule = true;
+              break;
+            }
+          }
+        }
+        
+        if (!isInsideModule) {
+          // Check if this boundary is also a module script
+          const isAlsoModule = /(?:\s(?:context|type)\s*=\s*["']module["']|\s(?:module|context="module"|type="module")(?:\s|>))/.test(boundary.attrs + ">");
+          if (!isAlsoModule) {
+            // This is a regular script
+            const openTagEnd = code.indexOf('>', boundary.start) + 1;
+            const closeTagStart = code.lastIndexOf('<', boundary.end - 1);
+            script = code.slice(openTagEnd, closeTagStart).trim();
+            const langMatch = boundary.attrs.match(/lang\s*=\s*["']([^"']+)["']/);
+            if (langMatch) {
+              scriptLang = langMatch[1];
+            }
+            componentScriptBoundary = boundary;
+            break;
+          }
+        }
+      }
+    } else {
+      // First script is a regular component script
+      componentScriptBoundary = { start: scriptSection.start, end: scriptSection.end, attrs: scriptSection.attrs };
+    }
+  }
+
+  // Build HTML by removing ALL script and style sections
   // Remove from highest index to lowest to preserve indices
   let html = code;
   const sections = [];
-  if (scriptSection) {
-    sections.push({ start: scriptSection.start, end: scriptSection.end });
+  
+  // Add all script boundaries
+  const allScriptBoundaries = findScriptBoundaries(code);
+  for (const boundary of allScriptBoundaries) {
+    // Check if this boundary is inside another script (inside a string)
+    let isInsideAnotherScript = false;
+    for (const other of allScriptBoundaries) {
+      if (other === boundary) continue;
+      const otherContentStart = other.start + code.slice(other.start, other.end).indexOf('>') + 1;
+      if (boundary.start > otherContentStart && boundary.start < other.end) {
+        if (isInsideStringOrComment(code, otherContentStart, boundary.start)) {
+          isInsideAnotherScript = true;
+          break;
+        }
+      }
+    }
+    if (!isInsideAnotherScript) {
+      sections.push({ start: boundary.start, end: boundary.end });
+    }
   }
+  
   if (styleSection) {
     sections.push({ start: styleSection.start, end: styleSection.end });
   }
@@ -235,6 +307,8 @@ export function extractParts(code: string) {
   return {
     script,
     scriptLang,
+    scriptModule,
+    scriptModuleLang,
     style,
     html,
   };
